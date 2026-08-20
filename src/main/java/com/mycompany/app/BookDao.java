@@ -111,7 +111,7 @@ public class BookDao {
     }
 
     public static List<Book> searchByAuthor(String author) {
-        String sql = "SELECT * FROM books WHERE title ILIKE ?";
+        String sql = "SELECT * FROM books WHERE author ILIKE ?";
         List<Book> searchedBooks = new ArrayList<Book>();
 
         try(
