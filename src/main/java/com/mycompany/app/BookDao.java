@@ -43,7 +43,8 @@ public class BookDao {
         try(
             Connection conn = DBConnection.getConnection();
             Statement stmt = conn.createStatement();
-            ResultSet rs = stmt.executeQuery(sql)) {
+            ResultSet rs = stmt.executeQuery(sql)) 
+            {
                 while(rs.next()) {
                     Book b = new Book(rs.getInt("id"), rs.getString("title"), rs.getString("author"), rs.getString("isbn"), rs.getInt("total_copies"), rs.getInt("available_copies"));
                     books.add(b);
