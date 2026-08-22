@@ -73,7 +73,32 @@ public class MemberDao {
             }
 
         } catch(SQLException| IOException e) {
-            System.out.println("Failed to load book: " + e.getMessage());
+            System.out.println("Failed to load member: " + e.getMessage());
+        } catch(Exception e) {
+            e.printStackTrace();
+        }
+
+        return m;
+    }
+
+    public static Member getMemberByEmail(String email) {
+        String sql = "SELECT * FROM members WHERE email = ?";
+        Member m = null;
+
+        try (
+            Connection conn = DBConnection.getConnection(); 
+            PreparedStatement stmt = conn.prepareStatement(sql))
+        {
+            stmt.setString(1, email);
+
+            try(ResultSet rs = stmt.executeQuery()) {
+                if(rs.next() == true) {
+                    m = new Member(rs.getInt("id"), rs.getString("name"), rs.getString("email"));
+                }
+            }
+
+        } catch(SQLException| IOException e) {
+            System.out.println("Failed to load member: " + e.getMessage());
         } catch(Exception e) {
             e.printStackTrace();
         }
