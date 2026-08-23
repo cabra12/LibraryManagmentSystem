@@ -118,6 +118,7 @@ public class App {
     }
 
     public static void memberActions(int memChoice, Scanner scanner, Member member) {
+        boolean validInput = false;
 
         switch(memChoice) {
             case 1:
@@ -138,9 +139,9 @@ public class App {
                 }
 
                 int bookId = 0;
-                boolean validInput = false;
                 
                 while(!validInput) {
+                    validInput = false;
                     System.out.print("Enter the ID of the book you'd like to check out: ");
                     if(scanner.hasNextInt()) {
                         bookId = scanner.nextInt();
@@ -162,6 +163,46 @@ public class App {
                 }
                 BorrowedBookDao.borrowBook(bookId, member.getId());
                 break;
+            case 3:
+                int borrowedBookId = 0;
+
+                System.out.println("Here are all the books you borrowed:");
+                List<BorrowedBook> borrowedBooks = BorrowedBookDao.getBorrowedBooksByMember(member.getId());
+                 
+                for(BorrowedBook borrowedBook: borrowedBooks) {
+                    Book book = BookDao.getBookById(borrowedBook.getBookId());
+                    System.out.println("ID: " + borrowedBook.getId() + " | " + book.getTitle() + " | " + book.getAuthor() + " | " + borrowedBook.getDueDate());
+                }
+
+                while(!validInput) {
+                    borrowedBookId = 0;
+                    validInput = false;
+
+                    System.out.print("Which would you like to return? Type the ID: ");
+
+                    if(scanner.hasNextInt()) {
+                        borrowedBookId = scanner.nextInt();
+                        scanner.nextLine();
+
+                        for(BorrowedBook borrowedBook : borrowedBooks) {
+                            if(borrowedBook.getId() == borrowedBookId) {
+                                validInput = true;
+                                break;
+                            }
+                        }
+
+                        if(!validInput) {
+                            System.out.println("That ID wasn't in the search results, try again");
+                        }
+
+                    } else {
+                        System.out.println("Please only enter numbers");
+                        scanner.nextLine();
+                    }
+                }
+
+                BorrowedBookDao.returnBook(borrowedBookId);
+                break;
                 
         }
     }
@@ -173,7 +214,7 @@ public class App {
             String exitChoice = "";
             int memActionChoice = 0;
 
-            System.out.println("Hello " + member.getName());
+            
             System.out.println("What would you like to do?");
             System.out.println("1. Search books (by title/author");
             System.out.println("2. Check out a book");
@@ -257,6 +298,7 @@ public class App {
                     member = registerNewMember(scanner);
                 }
 
+                System.out.println("Hello " + member.getName());
                 continueLoop = runMemberSession(scanner, member);
                 
             }else if (userType.equalsIgnoreCase("Admin")) {

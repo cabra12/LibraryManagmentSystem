@@ -93,7 +93,7 @@ public class BorrowedBookDao {
     }
 
     public static void returnBook(int borrowId) {
-        String sql1 = "SELECT book_id FROM borrowed_books WHERE id = ?";
+        String sql1 = "SELECT book_id, return_date FROM borrowed_books WHERE id = ?";
         String sql2 = "UPDATE borrowed_books SET return_date = CURRENT_DATE WHERE id = ?";
         String sql3 = "UPDATE books SET available_copies = available_copies + 1 WHERE id = ?";
         Connection conn = null;
@@ -114,17 +114,24 @@ public class BorrowedBookDao {
                 rs = pstmt1.executeQuery();
                 
                 if(rs.next() == true) {
-                    foundBookId = rs.getInt("book_id");
+                    if(rs.getDate("return_date") != null) {
+                        System.out.println("The book has already been returned");
+                        return;
+                    } else {
+                        foundBookId = rs.getInt("book_id");
 
-                    try(PreparedStatement pstmt2 = conn.prepareStatement(sql2)) {
-                        pstmt2.setInt(1, borrowId);
-                        pstmt2.executeUpdate();
-    
-                        try(PreparedStatement pstmt3 = conn.prepareStatement(sql3)) {
-                            pstmt3.setInt(1, foundBookId);
-                            pstmt3.executeUpdate();
+                        try(PreparedStatement pstmt2 = conn.prepareStatement(sql2)) {
+                            pstmt2.setInt(1, borrowId);
+                            pstmt2.executeUpdate();
+        
+                            try(PreparedStatement pstmt3 = conn.prepareStatement(sql3)) {
+                                pstmt3.setInt(1, foundBookId);
+                                pstmt3.executeUpdate();
+                                System.out.println("Book was returned!");
+                            }
                         }
                     }
+
                 } else {
                     System.out.println("Book not found");
                 }
@@ -177,7 +184,7 @@ public class BorrowedBookDao {
     }
 
     public static List<BorrowedBook> getBorrowedBooksByMember(int memberId) {
-        String sql = "SELECT * FROM borrowed_books WHERE member_id = ?";
+        String sql = "SELECT * FROM borrowed_books WHERE member_id = ? AND return_date is NULL";
         List<BorrowedBook> borrowedBooks = new ArrayList<BorrowedBook>();
 
         try(
