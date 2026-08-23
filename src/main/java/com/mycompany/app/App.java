@@ -166,6 +166,54 @@ public class App {
         }
     }
 
+    public static boolean runMemberSession(Scanner scanner, Member member) {
+        boolean continueLoop = true;
+
+        while(continueLoop) {
+            String exitChoice = "";
+            int memActionChoice = 0;
+
+            System.out.println("Hello " + member.getName());
+            System.out.println("What would you like to do?");
+            System.out.println("1. Search books (by title/author");
+            System.out.println("2. Check out a book");
+            System.out.println("3. Return a book");
+            System.out.println("4. View my borrowed books");
+            System.out.println("5. Exit");
+
+            while(memActionChoice < 1 || memActionChoice > 5) {
+                System.out.print("Enter your choice (1, 2, 3, 4, or 5): ");
+                if(scanner.hasNextInt()) {
+                    memActionChoice = scanner.nextInt();
+                    scanner.nextLine();
+                } else {
+                    System.out.println("Please enter a number");
+                    scanner.nextLine();
+                }
+                
+            }
+            
+            if(memActionChoice == 5) {
+                System.out.println("Are you sure you want to exit? Y/N: ");
+                while(!(exitChoice.equalsIgnoreCase("Y")) && !(exitChoice.equalsIgnoreCase("N"))) {
+                    exitChoice = scanner.nextLine();
+                    if(!(exitChoice.equalsIgnoreCase("Y")) && !(exitChoice.equalsIgnoreCase("N"))) {
+                        System.out.println("Invalid input, type in either 'y' or 'n'");
+                    }else if(exitChoice.equalsIgnoreCase("Y")) {
+                        System.out.println("Signing out...");
+                        System.out.println("Goodbye!");
+                        continueLoop = false;
+                    }
+                }
+                
+            } else {
+                memberActions(memActionChoice, scanner, member);
+            }
+        }
+
+        return continueLoop;
+    }
+
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
         boolean continueLoop = true;
@@ -176,9 +224,8 @@ public class App {
 
         while(continueLoop) {
             String userType = "";
-            int memActionChoice = 0;
+            
             int adminActionChoice = 0;
-            String exitChoice = "";
             continueLoop = true;
             String memberChoice = "";
             Member member = null;
@@ -206,48 +253,11 @@ public class App {
 
                 if(memberChoice.equalsIgnoreCase("L")){
                     member = useEmailToGetMember(scanner, false, "");
-                    System.out.println("Hello " + member.getName());
                 }else if(memberChoice.equalsIgnoreCase("R")) {
                     member = registerNewMember(scanner);
-                    System.out.println("Hello " + member.getName());
                 }
 
-                
-                System.out.println("What would you like to do?");
-                System.out.println("1. Search books (by title/author");
-                System.out.println("2. Check out a book");
-                System.out.println("3. Return a book");
-                System.out.println("4. View my borrowed books");
-                System.out.println("5. Exit");
-
-                while(memActionChoice < 1 || memActionChoice > 5) {
-                    System.out.print("Enter your choice (1, 2, 3, 4, 5, or 6): ");
-                    if(scanner.hasNextInt()) {
-                        memActionChoice = scanner.nextInt();
-                        scanner.nextLine();
-                    } else {
-                        System.out.println("Please enter a number");
-                        scanner.nextLine();
-                    }
-                    
-                }
-                if(memActionChoice == 5) {
-                    System.out.println("Are you sure you want to exit? Y/N: ");
-                    while(!(exitChoice.equalsIgnoreCase("Y")) && !(exitChoice.equalsIgnoreCase("N"))) {
-                        exitChoice = scanner.nextLine();
-                        if(!(exitChoice.equalsIgnoreCase("Y")) && !(exitChoice.equalsIgnoreCase("N"))) {
-                            System.out.println("Invalid input, type in either 'y' or 'n'");
-                        }else if(exitChoice.equalsIgnoreCase("Y")) {
-                            System.out.println("Signing out...");
-                            System.out.println("Goodbye!");
-                            continueLoop = false;
-                        }
-                    }
-                    
-                } else {
-                    memberActions(memActionChoice, scanner, member);
-                }
-
+                continueLoop = runMemberSession(scanner, member);
                 
             }else if (userType.equalsIgnoreCase("Admin")) {
                 System.out.println("What would you like to do?");
