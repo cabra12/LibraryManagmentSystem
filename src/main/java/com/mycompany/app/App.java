@@ -58,39 +58,110 @@ public class App {
         }
     }
 
-    public static void memberActions(int memChoice, Scanner scanner) {
+    public static Member registerNewMember(Scanner scanner) {
         String nameInput = "";
-        String emailInput = "";
+        while(nameInput.equals("")) {
+            System.out.print("Enter your name:");
+            nameInput = scanner.nextLine();
+            if(nameInput.equals("")) {
+                System.out.println("You can't leave your name blank");
+            }
+        }
 
+        Member newMember = useEmailToGetMember(scanner, true, nameInput);
+        return newMember;
+    }
+
+    public static Member useEmailToGetMember(Scanner scanner, boolean newRegistration, String nameInput) {
+        String emailInput = "";
+        Member member = null;
+        String choice = "";
+
+        while(member == null) {
+            choice = "";
+            while(!(emailInput.contains("@")) || emailInput.equals("")){
+                System.out.print("Enter your email: ");
+                emailInput = scanner.nextLine();
+                if(!(emailInput.contains("@")) || emailInput.equals("")) {
+                    System.out.println("Please enter a valid email");
+                }
+            }
+    
+            if(newRegistration == true) {
+                member = new Member(nameInput, emailInput);
+                MemberDao.addMember(member);
+            } else {
+                member = MemberDao.getMemberByEmail(emailInput);
+            }
+
+            if(member == null) {
+                System.out.println("Sorry, we're not able to find you. Would you like to try again or register as a new member?");
+
+                while(!(choice.equalsIgnoreCase("T")) && !(choice.equalsIgnoreCase("R"))) {
+                    System.out.print("Press T for 'try again' or R for 'register'");
+                    choice = scanner.nextLine();
+                    if(!(choice.equalsIgnoreCase("T")) && !(choice.equalsIgnoreCase("R"))) {
+                        System.out.println("Invalid input");
+                    }
+                }
+
+                if(choice.equalsIgnoreCase("T")) {
+                    emailInput = "";
+                }else if(choice.equalsIgnoreCase("R")){
+                    member = registerNewMember(scanner);
+                }
+                
+            }
+        }
+
+        return member;
+    }
+
+    public static void memberActions(int memChoice, Scanner scanner, Member member) {
 
         switch(memChoice) {
             case 1:
-                while(nameInput.equals("")) {
-                    System.out.print("Enter your name:");
-                    nameInput = scanner.nextLine();
-                    if(nameInput.equals("")) {
-                        System.out.println("You can't leave your name blank");
-                    }
-                }
-
-                while(!(emailInput.contains("@")) || emailInput.equals("")){
-                    System.out.print("Enter your email: ");
-                    emailInput = scanner.nextLine();
-                    if(!(emailInput.contains("@")) || emailInput.equals("")) {
-                        System.out.println("Please enter a valid email");
-                    }
-                    
-                }
-
-                Member member = new Member(nameInput, emailInput);
-                MemberDao.addMember(member);
-                break;
-            case 2:
                 List<Book> booksSearched = searchBooks(scanner);
                 printBookResults(booksSearched);
                     
                 break;
-            case 3: 
+            case 2: 
+                List<Book> searchBooksToBorrow = null;
+
+                while(searchBooksToBorrow == null || searchBooksToBorrow.isEmpty()) {
+                    searchBooksToBorrow = searchBooks(scanner);
+                    printBookResults(searchBooksToBorrow);
+
+                    if(searchBooksToBorrow == null || searchBooksToBorrow.isEmpty()) {
+                        System.out.println("No books found, please try your search again");
+                    }
+                }
+
+                int bookId = 0;
+                boolean validInput = false;
+                
+                while(!validInput) {
+                    System.out.print("Enter the ID of the book you'd like to check out: ");
+                    if(scanner.hasNextInt()) {
+                        bookId = scanner.nextInt();
+                        scanner.nextLine();
+                        for(Book book: searchBooksToBorrow) {
+                            if(book.getId() == bookId) {
+                                validInput = true;
+                                break;
+                            }
+                        }
+
+                        if(!validInput) {
+                            System.out.println("That ID wasn't in the search results, try again");
+                        }
+                    } else {
+                        System.out.println("Please enter a number");
+                        scanner.nextLine();
+                    }
+                }
+                BorrowedBookDao.borrowBook(bookId, member.getId());
+                break;
                 
         }
     }
@@ -109,6 +180,8 @@ public class App {
             int adminActionChoice = 0;
             String exitChoice = "";
             continueLoop = true;
+            String memberChoice = "";
+            Member member = null;
 
             while(!(userType.equalsIgnoreCase("Member")) && !(userType.equalsIgnoreCase("Admin"))) {
                 System.out.print("Are you a Member or an Admin?: ");
@@ -120,15 +193,34 @@ public class App {
             }
 
             if(userType.equalsIgnoreCase("Member")) {
-                System.out.println("What would you like to do?");
-                System.out.println("1. Register as a new member");
-                System.out.println("2. Search books (by title/author");
-                System.out.println("3. Check out a book");
-                System.out.println("4. Return a book");
-                System.out.println("5. View my borrowed books");
-                System.out.println("6. Exit");
+                System.out.println("Would you like to log in or register as a new member?");
+                
 
-                while(memActionChoice < 1 || memActionChoice > 6) {
+                while(!(memberChoice.equalsIgnoreCase("L")) && !(memberChoice.equalsIgnoreCase("R"))) {
+                    System.out.print("Press 'L' for log in and 'R' for register");
+                    memberChoice = scanner.nextLine();
+                    if(!(memberChoice.equalsIgnoreCase("L")) && !(memberChoice.equalsIgnoreCase("R"))) {
+                        System.out.println("Incorrect option");
+                    }
+                }
+
+                if(memberChoice.equalsIgnoreCase("L")){
+                    member = useEmailToGetMember(scanner, false, "");
+                    System.out.println("Hello " + member.getName());
+                }else if(memberChoice.equalsIgnoreCase("R")) {
+                    member = registerNewMember(scanner);
+                    System.out.println("Hello " + member.getName());
+                }
+
+                
+                System.out.println("What would you like to do?");
+                System.out.println("1. Search books (by title/author");
+                System.out.println("2. Check out a book");
+                System.out.println("3. Return a book");
+                System.out.println("4. View my borrowed books");
+                System.out.println("5. Exit");
+
+                while(memActionChoice < 1 || memActionChoice > 5) {
                     System.out.print("Enter your choice (1, 2, 3, 4, 5, or 6): ");
                     if(scanner.hasNextInt()) {
                         memActionChoice = scanner.nextInt();
@@ -139,7 +231,7 @@ public class App {
                     }
                     
                 }
-                if(memActionChoice == 6) {
+                if(memActionChoice == 5) {
                     System.out.println("Are you sure you want to exit? Y/N: ");
                     while(!(exitChoice.equalsIgnoreCase("Y")) && !(exitChoice.equalsIgnoreCase("N"))) {
                         exitChoice = scanner.nextLine();
@@ -153,10 +245,9 @@ public class App {
                     }
                     
                 } else {
-                    memberActions(memActionChoice, scanner);
+                    memberActions(memActionChoice, scanner, member);
                 }
 
-                
                 
             }else if (userType.equalsIgnoreCase("Admin")) {
                 System.out.println("What would you like to do?");

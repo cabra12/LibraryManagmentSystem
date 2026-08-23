@@ -6,6 +6,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.text.SimpleDateFormat;
 import java.sql.Date;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -56,8 +57,9 @@ public class BorrowedBookDao {
 
                     try(PreparedStatement pstmt2 = conn.prepareStatement(sql2)) {
                         pstmt2.setInt(1, bookId);
-
                         pstmt2.executeUpdate();
+                        SimpleDateFormat sdf = new SimpleDateFormat("MM/dd/yyyy");
+                        System.out.println(book.getTitle() + " by " + book.getAuthor() + " is check out and yours. Your due date is " + sdf.format(twoWeeksFromToday));
                     }
     
                 }else {
