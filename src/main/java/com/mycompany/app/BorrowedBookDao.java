@@ -162,7 +162,7 @@ public class BorrowedBookDao {
     }
 
     public static List<BorrowedBook> getAllBorrowedBooks(){
-        String sql = "SELECT * FROM borrowed_books";
+        String sql = "SELECT * FROM borrowed_books WHERE return_date IS NULL";
         List<BorrowedBook> borrowedBooks = new ArrayList<BorrowedBook>();
 
         try(

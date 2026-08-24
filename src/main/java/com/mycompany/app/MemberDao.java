@@ -143,8 +143,8 @@ public class MemberDao {
             stmt.setString(2, member.getEmail());
             stmt.setInt(3, member.getId());
 
-            int rows = stmt.executeUpdate();
-            System.out.println(rows + " member(s) updated successfully");
+            stmt.executeUpdate();
+            System.out.println("Member information updated successfully!");
         } catch(SQLException | IOException e) {
             System.out.println("Failed to update member(s): " + e.getMessage());
         } catch(Exception e) {
@@ -161,8 +161,8 @@ public class MemberDao {
         {
             stmt.setInt(1, id);
 
-            int rows = stmt.executeUpdate();
-            System.out.println(rows + " memeber(s) deleted successfully!");
+            stmt.executeUpdate();
+            System.out.println("Member deleted successfully");
 
         } catch(SQLException | IOException e) {
             System.out.println("Failed to delete member: " + e.getMessage());

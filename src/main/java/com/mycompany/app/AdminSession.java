@@ -111,16 +111,35 @@ public class AdminSession {
                     Member member = new Member(name, emailInput);
                     MemberDao.addMember(member);
                 }else if (memberActionChoice.equalsIgnoreCase("Update")) {
-                    Member updateMember = searchMembersAndDisplay(scanner);
+                    System.out.println("Let's search the member you'd like to update: ");
+                    Member updateMember = searchMembersAndDisplay(scanner, "update");
                     System.out.println("What member info would you like to update?");
                     System.out.println("To update name, press 'N'");
                     System.out.println("To update email, press 'E'");
                     updateMember = changeMemberDetails(updateMember, scanner);
                     MemberDao.updateMember(updateMember);
+                }else if(memberActionChoice.equalsIgnoreCase("Delete")) {
+                    System.out.println("Let's search the member you'd like to delete: ");
+                    Member deleteMember = searchMembersAndDisplay(scanner, "delete");
+                    List<BorrowedBook> listOfBorrowedBooks = BorrowedBookDao.getBorrowedBooksByMember(deleteMember.getId());
+
+                    if(!listOfBorrowedBooks.isEmpty()) {
+                        System.out.println("This member has active borrowed books and cannot be deleted");
+                    } else {
+                        MemberDao.deleteMember(deleteMember.getId());
+                    }
+                    
                 }
                 break;
             case 3:
-                
+                System.out.println("Here are all the books that are checked out: ");
+                List<BorrowedBook> allBorrowedBooks = BorrowedBookDao.getAllBorrowedBooks();
+                for(BorrowedBook borrowedBook: allBorrowedBooks) {
+                    Book book = BookDao.getBookById(borrowedBook.getBookId());
+                    Member member = MemberDao.getMemberId(borrowedBook.getMemberId());
+                    System.out.println("Book ID: " + borrowedBook.getBookId() + " | Title: " + book.getTitle() + " | Author: " + book.getAuthor() + " | Due Date: " + borrowedBook.getDueDate() + " | Member's ID: " + borrowedBook.getMemberId() + " | Member Name: " + member.getName());
+                }
+
         }
     }
 
@@ -216,7 +235,7 @@ public class AdminSession {
         return searchBooksToUpdate;
     }
 
-    public static Member searchMembersAndDisplay(Scanner scanner) {
+    public static Member searchMembersAndDisplay(Scanner scanner, String action) {
         String searchOption = "";
         String emailInput = "";
         String nameInput = "";
@@ -272,7 +291,7 @@ public class AdminSession {
                     
                     while(!validInput) {
                         validInput = false;
-                        System.out.print("Enter the ID of the member you'd like to update: ");
+                        System.out.print("Enter the ID of the member you'd like to " + action + ": ");
                         if(scanner.hasNextInt()) {
                             memberId = scanner.nextInt();
                             scanner.nextLine();
