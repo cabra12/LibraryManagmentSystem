@@ -55,15 +55,7 @@ public class AdminSession {
     public static void adminActions(int adminActionChoice, Scanner scanner) {
         switch(adminActionChoice) {
             case 1:
-                String bookActionChoice = "";
-                while(!(bookActionChoice.equalsIgnoreCase("Add")) && !(bookActionChoice.equalsIgnoreCase("Update")) && !(bookActionChoice.equalsIgnoreCase("Delete"))) {
-                    System.out.print("Type 'Add' to add a book, 'Update' to update a book, and 'Delete' to delete a book: ");
-                    bookActionChoice = scanner.nextLine();
-
-                    if(!(bookActionChoice.equalsIgnoreCase("Add")) && !(bookActionChoice.equalsIgnoreCase("Update")) && !(bookActionChoice.equalsIgnoreCase("Delete"))) {
-                        System.out.println("Sorry, we didn't recognize what you wrote, try again");
-                    }
-                }
+                String bookActionChoice = addUpdateDeleteItem(scanner, "book");
 
                 if(bookActionChoice.equalsIgnoreCase("Add")) {
                     System.out.print("Type in the title of the book: ");
@@ -106,7 +98,45 @@ public class AdminSession {
                 }
                 
                 break;
+            case 2:
+                String memberActionChoice = addUpdateDeleteItem(scanner, "member");
+                String emailInput = "";
+
+                if(memberActionChoice.equalsIgnoreCase("Add")){
+                    System.out.print("Type in the member's full name: ");
+                    String name = scanner.nextLine();
+                    
+
+                    while(!(emailInput.contains("@")) || emailInput.equals("")){
+                        System.out.println("Type in the member's full email: ");
+                        emailInput = scanner.nextLine();
+                        if(!(emailInput.contains("@")) || emailInput.equals("")) {
+                            System.out.println("Please enter a valid email");
+                        }
+                    }
+
+                    Member member = new Member(name, emailInput);
+                    MemberDao.addMember(member);
+                }else if (memberActionChoice.equalsIgnoreCase("Update")) {
+                    
+                }
         }
+    }
+
+    public static String addUpdateDeleteItem(Scanner scanner, String item) {
+        String choice = "";
+        while(!(choice.equalsIgnoreCase("Add")) && !(choice.equalsIgnoreCase("Update")) && !(choice.equalsIgnoreCase("Delete"))) {
+            choice = "";
+
+            System.out.print("Type 'Add' to add a " + item + ", 'Update' to update a " + item + ", and 'Delete' to delete a" + item + ": ");
+            choice = scanner.nextLine();
+
+            if(!(choice.equalsIgnoreCase("Add")) && !(choice.equalsIgnoreCase("Update")) && !(choice.equalsIgnoreCase("Delete"))) {
+                System.out.println("Sorry, we didn't recognize what you wrote, try again");
+            }
+        }
+
+        return choice;
     }
 
     public static int verifyInputIsNum(String request, Scanner scanner, boolean numCannotBeZero) {

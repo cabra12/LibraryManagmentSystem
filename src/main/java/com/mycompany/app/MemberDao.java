@@ -22,10 +22,10 @@ public class MemberDao {
             stmt.setString(1, member.getName());
             stmt.setString(2, member.getEmail());
 
-            int rows = stmt.executeUpdate();
-            System.out.println(rows + " member(s) inserted successfully");
+            stmt.executeUpdate();
+            System.out.println("Member named " + member.getName() + " inserted successfully");
         } catch(SQLException | IOException e) {
-            System.out.println("Failed to add member(s): " + e.getMessage());
+            System.out.println("Failed to add member: " + e.getMessage());
         } catch(Exception e) {
             e.printStackTrace();
         }
