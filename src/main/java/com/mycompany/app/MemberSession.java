@@ -185,6 +185,7 @@ public class MemberSession {
         if(booksSearched == null || booksSearched.isEmpty()) {
             System.out.println("No books found");
         } else {
+            System.out.println("Here are the books you searched for:");
             for (Book book: booksSearched) {
                 System.out.println(book.getTitle() + " by " + book.getAuthor() + " has " + book.getAvailableCopies() + " available copies out of " + book.getTotalCopies() + " total copies.");
                 System.out.println("     ISBN: " + book.getIsbn());

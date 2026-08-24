@@ -24,8 +24,8 @@ public class BookDao {
             stmt.setInt(4, book.getTotalCopies());
             stmt.setInt(5, book.getAvailableCopies());
 
-            int rows = stmt.executeUpdate();
-            System.out.println(rows + " book inserted successfully");
+            stmt.executeUpdate();
+            System.out.println(book.getTitle() + " by " + book.getAuthor() +  " was inserted successfully");
         } catch(SQLException | IOException e) {
             System.out.println("Failed to add book: " + e.getMessage());
         } catch(Exception e) {
@@ -150,8 +150,8 @@ public class BookDao {
             stmt.setInt(5, book.getAvailableCopies());
             stmt.setInt(6, book.getId());
 
-            int rows = stmt.executeUpdate();
-            System.out.println(rows + " book updated successfully");
+            stmt.executeUpdate();
+            System.out.println(book.getTitle() + " by " + book.getAuthor() + " with ISBN " + book.getIsbn() + " and " + book.getAvailableCopies() + " available copies out of " + book.getTotalCopies() + " total copies.");
         } catch(SQLException | IOException e) {
             System.out.println("Failed to update book: " + e.getMessage());
         } catch(Exception e) {
@@ -168,8 +168,8 @@ public class BookDao {
         {
             stmt.setInt(1, id);
 
-            int rows = stmt.executeUpdate();
-            System.out.println(rows + " book deleted successfully!");
+            stmt.executeUpdate();
+            System.out.println("Book was deleted successfully!");
 
         } catch(SQLException | IOException e) {
             System.out.println("Failed to delete book: " + e.getMessage());
