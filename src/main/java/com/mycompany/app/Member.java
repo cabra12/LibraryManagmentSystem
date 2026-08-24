@@ -29,7 +29,7 @@ public class Member {
         return name;
     }
 
-    public void setTitle(String nameInput) {
+    public void setName(String nameInput) {
         this.name = nameInput;
     }
 

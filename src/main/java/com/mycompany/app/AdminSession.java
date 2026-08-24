@@ -87,7 +87,7 @@ public class AdminSession {
                     System.out.println("To update isbn, press 'I'");
                     System.out.println("To update total copies, press 'TC'");
                     System.out.println("To update available copies, press 'AC'");
-                    changeBookDetails(book, scanner);
+                    book = changeBookDetails(book, scanner);
                     BookDao.updateBook(book);
 
                 } else if(bookActionChoice.equalsIgnoreCase("Delete")) {
@@ -106,20 +106,21 @@ public class AdminSession {
                     System.out.print("Type in the member's full name: ");
                     String name = scanner.nextLine();
                     
-
-                    while(!(emailInput.contains("@")) || emailInput.equals("")){
-                        System.out.println("Type in the member's full email: ");
-                        emailInput = scanner.nextLine();
-                        if(!(emailInput.contains("@")) || emailInput.equals("")) {
-                            System.out.println("Please enter a valid email");
-                        }
-                    }
+                    emailInput = verifyInputIsEmail(scanner);
 
                     Member member = new Member(name, emailInput);
                     MemberDao.addMember(member);
                 }else if (memberActionChoice.equalsIgnoreCase("Update")) {
-                    
+                    Member updateMember = searchMembersAndDisplay(scanner);
+                    System.out.println("What member info would you like to update?");
+                    System.out.println("To update name, press 'N'");
+                    System.out.println("To update email, press 'E'");
+                    updateMember = changeMemberDetails(updateMember, scanner);
+                    MemberDao.updateMember(updateMember);
                 }
+                break;
+            case 3:
+                
         }
     }
 
@@ -128,7 +129,7 @@ public class AdminSession {
         while(!(choice.equalsIgnoreCase("Add")) && !(choice.equalsIgnoreCase("Update")) && !(choice.equalsIgnoreCase("Delete"))) {
             choice = "";
 
-            System.out.print("Type 'Add' to add a " + item + ", 'Update' to update a " + item + ", and 'Delete' to delete a" + item + ": ");
+            System.out.print("Type 'Add' to add a " + item + ", 'Update' to update a " + item + ", and 'Delete' to delete a " + item + ": ");
             choice = scanner.nextLine();
 
             if(!(choice.equalsIgnoreCase("Add")) && !(choice.equalsIgnoreCase("Update")) && !(choice.equalsIgnoreCase("Delete"))) {
@@ -167,6 +168,38 @@ public class AdminSession {
         return numVar;
     }
 
+    public static String verifyInputIsEmail(Scanner scanner) {
+        String emailInput = "";
+
+        while(!(emailInput.contains("@")) || emailInput.equals("")){
+            System.out.println("Type in the member's full email: ");
+            emailInput = scanner.nextLine();
+            if(!(emailInput.contains("@")) || emailInput.equals("")) {
+                System.out.println("Please enter a valid email");
+            }
+        }
+
+        return emailInput;
+    }
+
+    public static String verifyInputIsNotEmpty(String request, Scanner scanner, boolean mustBeEmail) {
+        String input = "";
+
+        while(input.equals("") || (mustBeEmail && !input.contains("@"))) {
+            System.out.print(request);
+            input = scanner.nextLine();
+
+            if(input.equals("")){
+                System.out.println("This cannot be empty");
+            } else if(!input.contains("@") && mustBeEmail) {
+                System.out.println("Enter a valid email");
+            }
+
+        }
+        
+        return input;
+    }
+
     public static List<Book> searchForBooks(Scanner scanner) {
         System.out.println("We need to first search for the book you're looking for...");
         List<Book> searchBooksToUpdate = null;
@@ -181,6 +214,88 @@ public class AdminSession {
         }
 
         return searchBooksToUpdate;
+    }
+
+    public static Member searchMembersAndDisplay(Scanner scanner) {
+        String searchOption = "";
+        String emailInput = "";
+        String nameInput = "";
+        Member foundMemberByEmail = null;
+        List<Member> listOfMembers = null;
+        boolean validInput = false;
+
+        while(true) {
+            searchOption = "";
+            emailInput = "";
+            nameInput = "";
+            foundMemberByEmail = null;
+            listOfMembers = null;
+            int memberId = 0;
+            
+            while(!(searchOption.equalsIgnoreCase("Name")) && !(searchOption.equalsIgnoreCase("Email"))) {
+                System.out.print("Would you like to search for members by name or email?: ");
+                searchOption = scanner.nextLine();
+                if(!(searchOption.equalsIgnoreCase("Name")) && !(searchOption.equalsIgnoreCase("Email"))) {
+                    System.out.println("Please enter either 'name' or 'email': ");
+                }
+            }
+
+            if(searchOption.equalsIgnoreCase("Email")) {
+                emailInput = verifyInputIsEmail(scanner);
+                foundMemberByEmail= MemberDao.getMemberByEmail(emailInput);
+
+                if(foundMemberByEmail != null) {
+                    System.out.println("We found the member");
+                    System.out.println("ID: " + foundMemberByEmail.getId() + " | Name: " + foundMemberByEmail.getName() + "| Email: " + foundMemberByEmail.getEmail());
+                    return foundMemberByEmail;
+                } else {
+                    System.out.println("We cannot find any members by the email you entered. Try again.");
+                }
+    
+    
+            } else if(searchOption.equalsIgnoreCase("Name")) {
+                while(nameInput.equals("")){
+                    System.out.print("Enter the name of the member (or part of their full name): ");
+                    nameInput = scanner.nextLine();
+                    if(nameInput.equals("")) {
+                        System.out.println("Cannot be empty");
+                    }
+                }
+    
+                listOfMembers = MemberDao.searchByName(nameInput);
+
+                if(listOfMembers != null && !listOfMembers.isEmpty()) {
+                    System.out.println("Here's a list of members:");
+                    for(Member oneMember : listOfMembers) {
+                        System.out.println("ID: " + oneMember.getId() + " | Name: " + oneMember.getName() + "| Email: " + oneMember.getEmail());
+                    }
+                    
+                    while(!validInput) {
+                        validInput = false;
+                        System.out.print("Enter the ID of the member you'd like to update: ");
+                        if(scanner.hasNextInt()) {
+                            memberId = scanner.nextInt();
+                            scanner.nextLine();
+                            for(Member checkMember: listOfMembers) {
+                                if(checkMember.getId() == memberId) {
+                                    return MemberDao.getMemberId(memberId);
+                                }
+                            }
+    
+                            if(!validInput) {
+                                System.out.println("That ID wasn't in the search results, try again");
+                            }
+                        } else {
+                            System.out.println("Please enter a number");
+                            scanner.nextLine();
+                        }
+                    }
+                }else {
+                    System.out.println("We cannot find any members by the name you entered. Try again.");
+                }
+            }
+
+        }
     }
 
     public static Book findBookByIdInput(List<Book> listOfBooksSearched, Scanner scanner, String action) {
@@ -208,7 +323,7 @@ public class AdminSession {
         }
     }
 
-    public static void changeBookDetails(Book book, Scanner scanner) {
+    public static Book changeBookDetails(Book book, Scanner scanner) {
         String input = "";
         while(!(input.equalsIgnoreCase("T")) && !(input.equalsIgnoreCase("A")) && !(input.equalsIgnoreCase("I")) && !(input.equalsIgnoreCase("TC")) && !(input.equalsIgnoreCase("AC"))) {
             System.out.print("Enter the symbol: ");
@@ -220,18 +335,15 @@ public class AdminSession {
         }
 
         if(input.equalsIgnoreCase("T")) {
-            System.out.print("Enter what you would like to change the book title to: ");
-            String newTitle = scanner.nextLine();
+            String newTitle = verifyInputIsNotEmpty("Your title of the selected book is currently " + book.getTitle() + ". What would you like to change the book title to?: ", scanner, false);
             book.setTitle(newTitle);
             System.out.println("Successful change. The book's title is now " + book.getTitle());
         }else if(input.equalsIgnoreCase("A")){
-            System.out.print("Enter what you would like to change the book author to: ");
-            String newAuthor = scanner.nextLine();
+            String newAuthor = verifyInputIsNotEmpty("Your author of the selected book is currently " + book.getAuthor() + ". What would you like to change the book author to?: ", scanner, false);
             book.setAuthor(newAuthor);
             System.out.println("Successful change. The book's author is now " + book.getAuthor());
         }else if(input.equalsIgnoreCase("I")){
-            System.out.print("Enter what you would like to change the book ISBN to: ");
-            String newISBN = scanner.nextLine();
+            String newISBN = verifyInputIsNotEmpty("Your book ISBN is currently "  + book.getIsbn() + ". What would you like to change the book ISBN to?: ", scanner, false);
             book.setIsbn(newISBN);
             System.out.println("Successful change. The book's ISBN is now " + book.getIsbn());
         }else if(input.equalsIgnoreCase("TC")){
@@ -267,5 +379,31 @@ public class AdminSession {
             book.setAvailableCopies(newAvailValue);
             System.out.println("Successful change. The book's available copies are now " + book.getAvailableCopies());
         }
+
+        return book;
+    }
+
+    public static Member changeMemberDetails(Member member, Scanner scanner) {
+        String input = "";
+        while(!(input.equalsIgnoreCase("N")) && !(input.equalsIgnoreCase("E"))) {
+            System.out.print("Enter the symbol: ");
+            input = scanner.nextLine();
+
+            if(!(input.equalsIgnoreCase("N")) && !(input.equalsIgnoreCase("E"))) {
+                System.out.println("You did not input the correct value. Try again.");
+            }
+        }
+
+        if(input.equalsIgnoreCase("N")) {
+            String newName = verifyInputIsNotEmpty("Your member is currently called " + member.getName() + " . What would you like to change it to?: ", scanner, false);
+            member.setName(newName);
+            System.out.println("Successful change. The member's name is now " + member.getName());
+        }else if(input.equalsIgnoreCase("E")){
+            String newEmail = verifyInputIsNotEmpty("Your member's email is currently " + member.getEmail() + " . What would you like to change it to?: ", scanner, true);
+            member.setEmail(newEmail);
+            System.out.println("Successful change. The member's email is now " + member.getEmail());
+        }
+
+        return member;
     }
 }
