@@ -12,7 +12,9 @@ import java.util.List;
 
 public class MemberDao {
     public static void addMember(Member member) {
-        String sql = "INSERT INTO members (name, email) VALUES (?, ?)";
+        //RETURNING id tells Postgres "after you insert this row, hand back the id column value that was generated."
+        //this is so newly created members can have their ID set
+        String sql = "INSERT INTO members (name, email) VALUES (?, ?) RETURNING id";
 
         //PreparedStatement features of the JDBC API used to execute parameterized SQL queries securely and efficiently
         try(
@@ -22,8 +24,12 @@ public class MemberDao {
             stmt.setString(1, member.getName());
             stmt.setString(2, member.getEmail());
 
-            stmt.executeUpdate();
-            System.out.println("Member named " + member.getName() + " inserted successfully");
+            try(ResultSet rs = stmt.executeQuery()) {
+                if(rs.next()) {
+                    member.setId(rs.getInt("id"));
+                }
+            }
+            System.out.println("Member named " + member.getName() + " was added successfully");
         } catch(SQLException | IOException e) {
             System.out.println("Failed to add member: " + e.getMessage());
         } catch(Exception e) {

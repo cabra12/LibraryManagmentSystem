@@ -6,7 +6,7 @@ public class AuthHelper {
     public static Member registerNewMember(Scanner scanner) {
         String nameInput = "";
         while(nameInput.equals("")) {
-            System.out.print("Enter your name:");
+            System.out.print("Enter your full name: ");
             nameInput = scanner.nextLine();
             if(nameInput.equals("")) {
                 System.out.println("You can't leave your name blank");

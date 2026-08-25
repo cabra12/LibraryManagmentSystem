@@ -27,10 +27,10 @@ public class App {
             }
 
             if(userType.equalsIgnoreCase("Member")) {
-                System.out.println("Would you like to log in or register as a new member?");
+                System.out.println("\nWould you like to log in or register as a new member?");
                 
                 while(!(memberChoice.equalsIgnoreCase("L")) && !(memberChoice.equalsIgnoreCase("R"))) {
-                    System.out.print("Press 'L' for log in and 'R' for register");
+                    System.out.print("Press 'L' for log in and 'R' for register: ");
                     memberChoice = scanner.nextLine();
                     if(!(memberChoice.equalsIgnoreCase("L")) && !(memberChoice.equalsIgnoreCase("R"))) {
                         System.out.println("Incorrect option");
@@ -48,6 +48,7 @@ public class App {
                 
             } else if (userType.equalsIgnoreCase("Admin")) {
 
+                System.out.println("Hello Admin");
                 continueLoop = AdminSession.runAdminSession(scanner);
 
             }

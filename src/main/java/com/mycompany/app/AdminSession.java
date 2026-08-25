@@ -13,7 +13,7 @@ public class AdminSession {
             adminActionChoice = 0;
 
             
-            System.out.println("What would you like to do?");
+            System.out.println("\nWhat would you like to do?");
             System.out.println("1. Add/Update/Delete Books");
             System.out.println("2. Add/Update/Delete Members");
             System.out.println("3. View all borrowed books");
@@ -134,12 +134,15 @@ public class AdminSession {
             case 3:
                 System.out.println("Here are all the books that are checked out: ");
                 List<BorrowedBook> allBorrowedBooks = BorrowedBookDao.getAllBorrowedBooks();
-                for(BorrowedBook borrowedBook: allBorrowedBooks) {
-                    Book book = BookDao.getBookById(borrowedBook.getBookId());
-                    Member member = MemberDao.getMemberId(borrowedBook.getMemberId());
-                    System.out.println("Book ID: " + borrowedBook.getBookId() + " | Title: " + book.getTitle() + " | Author: " + book.getAuthor() + " | Due Date: " + borrowedBook.getDueDate() + " | Member's ID: " + borrowedBook.getMemberId() + " | Member Name: " + member.getName());
-                }
-
+                printBorrowedBooks(allBorrowedBooks);
+                break;
+            case 4:
+                System.out.println("Here are all the overdue books: ");
+                List<BorrowedBook> allOverdueBooks = BorrowedBookDao.getOverdueBooks();
+                printBorrowedBooks(allOverdueBooks);
+                break;
+            default:
+                System.out.println("Invalid option");
         }
     }
 
@@ -424,5 +427,13 @@ public class AdminSession {
         }
 
         return member;
+    }
+
+    public static void printBorrowedBooks(List<BorrowedBook> listOfBooksObject) {
+        for(BorrowedBook borrowedBook: listOfBooksObject) {
+            Book book = BookDao.getBookById(borrowedBook.getBookId());
+            Member member = MemberDao.getMemberId(borrowedBook.getMemberId());
+            System.out.println("Book ID: " + borrowedBook.getBookId() + " | Title: " + book.getTitle() + " | Author: " + book.getAuthor() + " | Due Date: " + borrowedBook.getDueDate() + " | Member's ID: " + borrowedBook.getMemberId() + " | Member Name: " + member.getName());
+        }
     }
 }

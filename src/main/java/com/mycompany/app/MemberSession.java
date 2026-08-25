@@ -13,8 +13,8 @@ public class MemberSession {
             int memActionChoice = 0;
 
             
-            System.out.println("What would you like to do?");
-            System.out.println("1. Search books (by title/author");
+            System.out.println("\nWhat would you like to do?");
+            System.out.println("1. Search books (by title/author)");
             System.out.println("2. Check out a book");
             System.out.println("3. Return a book");
             System.out.println("4. View my borrowed books");
@@ -25,7 +25,10 @@ public class MemberSession {
                 if(scanner.hasNextInt()) {
                     memActionChoice = scanner.nextInt();
                     scanner.nextLine();
-                } else {
+                    if(memActionChoice < 1 || memActionChoice > 5) {
+                        System.out.println("Your number was too high or too low. Try again.");
+                    }
+                }else {
                     System.out.println("Please enter a number");
                     scanner.nextLine();
                 }
@@ -137,7 +140,8 @@ public class MemberSession {
             case 4:
                 getAllBorrowedBooksByMember(member);
                 break;
-                
+            default:
+                System.out.println("Invalid option");
         }
     }
 
@@ -183,9 +187,9 @@ public class MemberSession {
 
     public static void printBookResults(List<Book> booksSearched) {
         if(booksSearched == null || booksSearched.isEmpty()) {
-            System.out.println("No books found");
+            System.out.println("No books found. Please try your search again.");
         } else {
-            System.out.println("Here are the books you searched for:");
+            System.out.println("\nHere are the books you searched for:");
             for (Book book: booksSearched) {
                 System.out.println(book.getTitle() + " by " + book.getAuthor() + " has " + book.getAvailableCopies() + " available copies out of " + book.getTotalCopies() + " total copies.");
                 System.out.println("     ISBN: " + book.getIsbn());
@@ -200,7 +204,7 @@ public class MemberSession {
          
         for(BorrowedBook borrowedBook: borrowedBooks) {
             Book book = BookDao.getBookById(borrowedBook.getBookId());
-            System.out.println("ID: " + borrowedBook.getId() + " | " + book.getTitle() + " | " + book.getAuthor() + " | " + borrowedBook.getDueDate());
+            System.out.println("ID: " + borrowedBook.getId() + " | Title: " + book.getTitle() + " | Author: " + book.getAuthor() + " | Due Date: " + borrowedBook.getDueDate());
         }
 
         return borrowedBooks;

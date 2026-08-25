@@ -59,7 +59,7 @@ public class BorrowedBookDao {
                         pstmt2.setInt(1, bookId);
                         pstmt2.executeUpdate();
                         SimpleDateFormat sdf = new SimpleDateFormat("MM/dd/yyyy");
-                        System.out.println(book.getTitle() + " by " + book.getAuthor() + " is check out and yours. Your due date is " + sdf.format(twoWeeksFromToday));
+                        System.out.println(book.getTitle() + " by " + book.getAuthor() + " is checked out and yours. Your due date is " + sdf.format(twoWeeksFromToday));
                     }
     
                 }else {
