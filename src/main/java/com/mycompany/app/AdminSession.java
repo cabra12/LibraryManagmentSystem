@@ -16,12 +16,13 @@ public class AdminSession {
             System.out.println("\nWhat would you like to do?");
             System.out.println("1. Add/Update/Delete Books");
             System.out.println("2. Add/Update/Delete Members");
-            System.out.println("3. View all borrowed books");
-            System.out.println("4. View overdue books");
-            System.out.println("5. Exit");
+            System.out.println("3. View all members");
+            System.out.println("4. View all borrowed books");
+            System.out.println("5. View overdue books");
+            System.out.println("6. Exit");
 
-            while(adminActionChoice < 1 || adminActionChoice > 5) {
-                System.out.print("Enter your choice (1, 2, 3, 4, or 5): ");
+            while(adminActionChoice < 1 || adminActionChoice > 6) {
+                System.out.print("Enter your choice (1, 2, 3, 4, 5, or 6): ");
                 if(scanner.hasNextInt()) {
                     adminActionChoice = scanner.nextInt();
                     scanner.nextLine();
@@ -31,7 +32,7 @@ public class AdminSession {
                 }
             }
             
-            if(adminActionChoice == 5) {
+            if(adminActionChoice == 6) {
                 System.out.println("Are you sure you want to exit? Y/N: ");
                 while(!(exitChoice.equalsIgnoreCase("Y")) && !(exitChoice.equalsIgnoreCase("N"))) {
                     exitChoice = scanner.nextLine();
@@ -131,12 +132,17 @@ public class AdminSession {
                     
                 }
                 break;
-            case 3:
+            case 3: 
+                System.out.println("Here are all the members in the Library Database:");
+                List<Member> allMembers = MemberDao.getAllMembers();
+                printAllMembers(allMembers);
+                break;
+            case 4:
                 System.out.println("Here are all the books that are checked out: ");
                 List<BorrowedBook> allBorrowedBooks = BorrowedBookDao.getAllBorrowedBooks();
                 printBorrowedBooks(allBorrowedBooks);
                 break;
-            case 4:
+            case 5:
                 System.out.println("Here are all the overdue books: ");
                 List<BorrowedBook> allOverdueBooks = BorrowedBookDao.getOverdueBooks();
                 printBorrowedBooks(allOverdueBooks);
@@ -194,7 +200,7 @@ public class AdminSession {
         String emailInput = "";
 
         while(!(emailInput.contains("@")) || emailInput.equals("")){
-            System.out.println("Type in the member's full email: ");
+            System.out.print("Type in the member's email: ");
             emailInput = scanner.nextLine();
             if(!(emailInput.contains("@")) || emailInput.equals("")) {
                 System.out.println("Please enter a valid email");
@@ -268,7 +274,7 @@ public class AdminSession {
 
                 if(foundMemberByEmail != null) {
                     System.out.println("We found the member");
-                    System.out.println("ID: " + foundMemberByEmail.getId() + " | Name: " + foundMemberByEmail.getName() + "| Email: " + foundMemberByEmail.getEmail());
+                    System.out.println("ID: " + foundMemberByEmail.getId() + " | Name: " + foundMemberByEmail.getName() + " | Email: " + foundMemberByEmail.getEmail());
                     return foundMemberByEmail;
                 } else {
                     System.out.println("We cannot find any members by the email you entered. Try again.");
@@ -434,6 +440,14 @@ public class AdminSession {
             Book book = BookDao.getBookById(borrowedBook.getBookId());
             Member member = MemberDao.getMemberId(borrowedBook.getMemberId());
             System.out.println("Book ID: " + borrowedBook.getBookId() + " | Title: " + book.getTitle() + " | Author: " + book.getAuthor() + " | Due Date: " + borrowedBook.getDueDate() + " | Member's ID: " + borrowedBook.getMemberId() + " | Member Name: " + member.getName());
+        }
+    }
+
+    public static void printAllMembers(List<Member> listOfMemberObjects) {
+        for(Member member: listOfMemberObjects) {
+            List<BorrowedBook> booksBorrowedByMember = BorrowedBookDao.getBorrowedBooksByMember(member.getId());
+            List<BorrowedBook> overdueBooksByMember = BorrowedBookDao.getOverdueBooksByMember(member.getId());
+            System.out.println("Member ID: " + member.getId() + " | Name: " + member.getName() + " | Email: " + member.getEmail() + " | Number of Books Borrowed: " + booksBorrowedByMember.size() + " | Number of Overdue Books: " + overdueBooksByMember.size());
         }
     }
 }

@@ -151,6 +151,7 @@ public class BookDao {
             stmt.setInt(6, book.getId());
 
             stmt.executeUpdate();
+            System.out.println("Updated Book: ");
             System.out.println(book.getTitle() + " by " + book.getAuthor() + " with ISBN " + book.getIsbn() + " and " + book.getAvailableCopies() + " available copies out of " + book.getTotalCopies() + " total copies.");
         } catch(SQLException | IOException e) {
             System.out.println("Failed to update book: " + e.getMessage());

@@ -231,4 +231,30 @@ public class BorrowedBookDao {
 
         return overdueBooks;
     }
+
+    public static List<BorrowedBook> getOverdueBooksByMember(int memberId) {
+        String sql = "SELECT * FROM borrowed_books WHERE member_id = ? AND due_date < CURRENT_DATE AND return_date is NULL";
+        List<BorrowedBook> overdueBooks = new ArrayList<BorrowedBook>();
+
+        try(
+            Connection conn = DBConnection.getConnection(); 
+            PreparedStatement stmt = conn.prepareStatement(sql)) 
+        {
+            stmt.setInt(1, memberId);
+
+            try(ResultSet rs = stmt.executeQuery()) {
+                while(rs.next()) {
+                    BorrowedBook bb = new BorrowedBook(rs.getInt("id"), rs.getInt("book_id"), rs.getInt("member_id"), rs.getDate("borrow_date"), rs.getDate("due_date"), rs.getDate("return_date"));
+                    overdueBooks.add(bb);
+                }
+            }
+
+        } catch(SQLException| IOException e) {
+            System.out.println("Failed to load overdue books by member: " + e.getMessage());
+        } catch(Exception e) {
+            e.printStackTrace();
+        }
+
+        return overdueBooks;
+    }
 }
