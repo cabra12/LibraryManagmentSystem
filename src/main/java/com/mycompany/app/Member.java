@@ -4,6 +4,7 @@ public class Member {
     private int id;
     private String name;
     private String email;
+    private String password;
 
     public Member(int id, String name, String email) {
         this.id = id;
@@ -12,9 +13,17 @@ public class Member {
     }
 
     //creating a new member to insert, postgres will generate an ID once you insert it
-    public Member(String name, String email) {
+    public Member(String name, String email, String password) {
         this.name = name;
         this.email = email;
+        this.password = password;
+    }
+
+    public Member(int id, String name, String email, String password) {
+        this.id = id;
+        this.name = name;
+        this.email = email;
+        this.password = password;
     }
 
     public int getId() {
@@ -39,5 +48,13 @@ public class Member {
 
     public void setEmail(String emailInput) {
         this.email = emailInput;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
     }
 }

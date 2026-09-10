@@ -38,7 +38,7 @@ public class App {
                 }
 
                 if(memberChoice.equalsIgnoreCase("L")){
-                    member = AuthHelper.useEmailToGetMember(scanner, false, "");
+                    member = AuthHelper.logInExistingMember(scanner);
                 }else if(memberChoice.equalsIgnoreCase("R")) {
                     member = AuthHelper.registerNewMember(scanner);
                 }

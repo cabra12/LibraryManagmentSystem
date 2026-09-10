@@ -14,7 +14,7 @@ public class MemberDao {
     public static void addMember(Member member) {
         //RETURNING id tells Postgres "after you insert this row, hand back the id column value that was generated."
         //this is so newly created members can have their ID set
-        String sql = "INSERT INTO members (name, email) VALUES (?, ?) RETURNING id";
+        String sql = "INSERT INTO members (name, email, password) VALUES (?, ?, ?) RETURNING id";
 
         //PreparedStatement features of the JDBC API used to execute parameterized SQL queries securely and efficiently
         try(
@@ -23,6 +23,7 @@ public class MemberDao {
         {
             stmt.setString(1, member.getName());
             stmt.setString(2, member.getEmail());
+            stmt.setString(3, member.getPassword());
 
             try(ResultSet rs = stmt.executeQuery()) {
                 if(rs.next()) {
@@ -38,7 +39,7 @@ public class MemberDao {
     }
 
     public static List<Member> getAllMembers() {
-        String sql = "SELECT * FROM members";
+        String sql = "SELECT id, name, email FROM members";
         List<Member> members = new ArrayList<Member>();
 
         //ResultSet in Java is an object that holds the data returned from a database after executing a SQL query (SELECT)
@@ -62,7 +63,7 @@ public class MemberDao {
     }
 
     public static Member getMemberId(int id) {
-        String sql = "SELECT * FROM members WHERE id = ?";
+        String sql = "SELECT id, name, email FROM members WHERE id = ?";
         Member m = null;
 
         //Prepared Statement because it has parameters
@@ -87,8 +88,9 @@ public class MemberDao {
         return m;
     }
 
+    //specifying columns instead of using * to make sure programmer knows this method uses password, something sensitive
     public static Member getMemberByEmail(String email) {
-        String sql = "SELECT * FROM members WHERE email = ?";
+        String sql = "SELECT id, name, email, password FROM members WHERE email = ?";
         Member m = null;
 
         try (
@@ -99,7 +101,7 @@ public class MemberDao {
 
             try(ResultSet rs = stmt.executeQuery()) {
                 if(rs.next() == true) {
-                    m = new Member(rs.getInt("id"), rs.getString("name"), rs.getString("email"));
+                    m = new Member(rs.getInt("id"), rs.getString("name"), rs.getString("email"), rs.getString("password"));
                 }
             }
 
@@ -113,7 +115,7 @@ public class MemberDao {
     }
 
     public static List<Member> searchByName(String name) {
-        String sql = "SELECT * FROM members WHERE name ILIKE ?";
+        String sql = "SELECT id, name, email FROM members WHERE name ILIKE ?";
         List<Member> searchedMembers = new ArrayList<Member>();
 
         try(
