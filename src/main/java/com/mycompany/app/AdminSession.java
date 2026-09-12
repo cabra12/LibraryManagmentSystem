@@ -109,8 +109,8 @@ public class AdminSession {
                     
                     emailInput = verifyInputIsEmail(scanner);
 
-                    Member member = new Member(name, emailInput);
-                    MemberDao.addMember(member);
+                    // Member member = new Member(name, emailInput);
+                    // MemberDao.addMember(member);
                 }else if (memberActionChoice.equalsIgnoreCase("Update")) {
                     System.out.println("Let's search the member you'd like to update: ");
                     Member updateMember = searchMembersAndDisplay(scanner, "update");
