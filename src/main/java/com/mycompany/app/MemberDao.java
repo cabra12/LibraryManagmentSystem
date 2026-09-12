@@ -45,6 +45,7 @@ public class MemberDao {
         //ResultSet in Java is an object that holds the data returned from a database after executing a SQL query (SELECT)
         //.next() method advances cursor through first row and subsequent rows, method returns true if a row exists and false otherwise, ideal for while loop
         //use getter to extract column data by using column name
+        //using Statement here because there's nothing from the user being inserted, so it's fine to use this (no ?), otherwise you'd use PreparedStatement
         try(
             Connection conn = DBConnection.getConnection();
             Statement stmt = conn.createStatement();
@@ -154,7 +155,7 @@ public class MemberDao {
             stmt.executeUpdate();
             System.out.println("Member information updated successfully!");
         } catch(SQLException | IOException e) {
-            System.out.println("Failed to update member(s): " + e.getMessage());
+            System.out.println("Failed to update member: " + e.getMessage());
         } catch(Exception e) {
             e.printStackTrace();
         }

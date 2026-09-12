@@ -16,6 +16,7 @@ public class App {
             continueLoop = true;
             String memberChoice = "";
             Member member = null;
+            Admin admin = null;
 
             while(!(userType.equalsIgnoreCase("Member")) && !(userType.equalsIgnoreCase("Admin"))) {
                 System.out.print("Are you a Member or an Admin?: ");
@@ -48,7 +49,7 @@ public class App {
                 
             } else if (userType.equalsIgnoreCase("Admin")) {
 
-                System.out.println("Hello Admin");
+                admin = AuthHelper.logInAsAdmin(scanner);
                 continueLoop = AdminSession.runAdminSession(scanner);
 
             }

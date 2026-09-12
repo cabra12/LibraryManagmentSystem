@@ -17,9 +17,7 @@ public class AuthHelper {
     }
 
     public static Member logInExistingMember(Scanner scanner) {
-        boolean successfulLogin = false;
         Member member = null;
-        
 
         while(true) {
             String email = getEmailInput(scanner);
@@ -43,15 +41,10 @@ public class AuthHelper {
                     member = registerNewMember(scanner);
                     break;
                 }
-            }else {
-                String password = retrievePassword(scanner);
-
-                //BCrypt checks (plainTextCandidate, storedHash)
-                successfulLogin = checkPassword(password, member.getPassword());
-
-                if(successfulLogin == true) {
+            } else {
+                if(checkPassword(retrievePassword(scanner), member.getPassword())) {
                     break;
-                }else {
+                } else {
                     continue;
                 }
             }
@@ -133,6 +126,43 @@ public class AuthHelper {
             System.out.println("Your email or password is incorrect. Try to log in again");
             return false;
         }
+    }
+
+    public static Admin logInAsAdmin(Scanner scanner) {
+        Admin admin = null;
+
+        while(true) {
+            String username = getUsernameInput(scanner);
+            admin = AdminDao.logInWithUsername(username);
+
+            if(admin == null) {
+                System.out.println("Username '" + username + "' not found. Try again.");
+                continue;
+            } else {
+                if(checkPassword(retrievePassword(scanner), admin.getPassword())) {
+                    break;
+                } else {
+                    continue;
+                }
+            }
+        }
+
+        System.out.println("Hello " + admin.getName() + " (Admin)");
+        return admin;
+    }
+
+    public static String getUsernameInput(Scanner scanner) {
+        String usernameInput = "";
+    
+        while(usernameInput.equals("")){
+            System.out.print("Enter your username: ");
+            usernameInput = scanner.nextLine();
+            if(usernameInput.equals("")) {
+                System.out.println("Please enter a valid username");
+            }
+        }
+    
+        return usernameInput;
     }
 
 }
