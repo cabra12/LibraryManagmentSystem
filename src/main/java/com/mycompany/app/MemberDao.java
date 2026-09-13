@@ -11,7 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class MemberDao {
-    public static void addMember(Member member) {
+    public static DaoResult addMember(Member member) {
         //RETURNING id tells Postgres "after you insert this row, hand back the id column value that was generated."
         //this is so newly created members can have their ID set
         String sql = "INSERT INTO members (name, email, password, must_change_password) VALUES (?, ?, ?, ?) RETURNING id";
@@ -32,12 +32,23 @@ public class MemberDao {
                 }
             }
             System.out.println("Member named " + member.getName() + " was added successfully");
-        } catch(SQLException | IOException e) {
+            return DaoResult.SUCCESS;
+        } catch(SQLException e) {
+            if ("23505".equals(e.getSQLState())) {
+                return DaoResult.DUPLICATE_KEY;
+            } else {
+                System.out.println("Failed to add member: " + e.getMessage());
+                return DaoResult.DATABASE_ERROR;
+            }
+        } catch(IOException e) {
             System.out.println("Failed to add member: " + e.getMessage());
+            return DaoResult.DATABASE_ERROR;
         } catch(Exception e) {
             e.printStackTrace();
+            return DaoResult.DATABASE_ERROR;
         }
     }
+    
 
     public static List<Member> getAllMembers() {
         String sql = "SELECT id, name, email, must_change_password FROM members";
@@ -142,7 +153,7 @@ public class MemberDao {
         return searchedMembers;
     }
 
-    public static void updateMember(Member member) {
+    public static DaoResult updateMember(Member member) {
         String sql = "UPDATE members SET name = ?, email = ? WHERE id = ?";
 
         try(
@@ -155,10 +166,20 @@ public class MemberDao {
 
             stmt.executeUpdate();
             System.out.println("Member information updated successfully!");
-        } catch(SQLException | IOException e) {
+            return DaoResult.SUCCESS;
+        } catch(SQLException e) {
+            if ("23505".equals(e.getSQLState())) {
+                return DaoResult.DUPLICATE_KEY;
+            } else {
+                System.out.println("Failed to update member: " + e.getMessage());
+                return DaoResult.DATABASE_ERROR;
+            }
+        } catch(IOException e) {
             System.out.println("Failed to update member: " + e.getMessage());
+            return DaoResult.DATABASE_ERROR;
         } catch(Exception e) {
             e.printStackTrace();
+            return DaoResult.DATABASE_ERROR;
         }
     }
 

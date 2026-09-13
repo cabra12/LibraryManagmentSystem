@@ -137,10 +137,10 @@ public class AdminDao {
             }
         } catch(IOException e) {
             System.out.println("Failed to add admin: " + e.getMessage());
-            return DaoResult.DUPLICATE_KEY;
+            return DaoResult.DATABASE_ERROR;
         } catch(Exception e) {
             e.printStackTrace();
-            return DaoResult.DUPLICATE_KEY;
+            return DaoResult.DATABASE_ERROR;
         }
     }
 

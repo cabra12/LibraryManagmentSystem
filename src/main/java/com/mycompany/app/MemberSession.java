@@ -18,6 +18,7 @@ public class MemberSession {
             System.out.println("2. Check out a book");
             System.out.println("3. Return a book");
             System.out.println("4. View my borrowed books");
+            System.out.println("5. Change password");
             System.out.println("5. Exit");
 
             while(memActionChoice < 1 || memActionChoice > 5) {

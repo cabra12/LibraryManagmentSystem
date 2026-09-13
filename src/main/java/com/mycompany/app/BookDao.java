@@ -10,8 +10,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class BookDao {
-    public static void addBook(Book book) {
-        String sql = "INSERT INTO books (title, author, isbn, total_copies, available_copies) VALUES (?, ?, ?, ?, ?)";
+    public static DaoResult addBook(Book book) {
+        String sql = "INSERT INTO books (title, author, isbn, total_copies, available_copies) VALUES (?, ?, ?, ?, ?) RETURNING id";
 
         //PreparedStatement features of the JDBC API used to execute parameterized SQL queries securely and efficiently
         try(
@@ -24,14 +24,29 @@ public class BookDao {
             stmt.setInt(4, book.getTotalCopies());
             stmt.setInt(5, book.getAvailableCopies());
 
-            stmt.executeUpdate();
+            try(ResultSet rs = stmt.executeQuery()) {
+                if(rs.next()) {
+                    book.setId(rs.getInt("id"));
+                }
+            }
+            
             System.out.println(book.getTitle() + " by " + book.getAuthor() +  " was inserted successfully");
-        } catch(SQLException | IOException e) {
+            return DaoResult.SUCCESS;
+        } catch(SQLException e) {
+            if ("23505".equals(e.getSQLState())) {
+                return DaoResult.DUPLICATE_KEY;
+            }
             System.out.println("Failed to add book: " + e.getMessage());
+            return DaoResult.DATABASE_ERROR;
+        } catch(IOException e) {
+            System.out.println("Failed to add book: " + e.getMessage());
+            return DaoResult.DATABASE_ERROR;
         } catch(Exception e) {
             e.printStackTrace();
+            return DaoResult.DATABASE_ERROR;
         }
     }
+    
 
     public static List<Book> getAllBooks() {
         String sql = "SELECT * FROM books";
@@ -136,7 +151,7 @@ public class BookDao {
         return searchedBooks;
     }
 
-    public static void updateBook(Book book) {
+    public static DaoResult updateBook(Book book) {
         String sql = "UPDATE books SET title = ?, author = ?, isbn = ?, total_copies = ?, available_copies = ? WHERE id = ?";
 
         try(
@@ -151,12 +166,22 @@ public class BookDao {
             stmt.setInt(6, book.getId());
 
             stmt.executeUpdate();
-            System.out.println("Updated Book: ");
+            System.out.println("Updated Book successfully: ");
             System.out.println(book.getTitle() + " by " + book.getAuthor() + " with ISBN " + book.getIsbn() + " and " + book.getAvailableCopies() + " available copies out of " + book.getTotalCopies() + " total copies.");
-        } catch(SQLException | IOException e) {
+            return DaoResult.SUCCESS;
+        } catch(SQLException e) {
+            if ("23505".equals(e.getSQLState())) {
+                return DaoResult.DUPLICATE_KEY;
+            } else {
+                System.out.println("Failed to update book: " + e.getMessage());
+                return DaoResult.DATABASE_ERROR;
+            }
+        } catch(IOException e) {
             System.out.println("Failed to update book: " + e.getMessage());
+            return DaoResult.DATABASE_ERROR;
         } catch(Exception e) {
             e.printStackTrace();
+            return DaoResult.DATABASE_ERROR;
         }
     }
 
