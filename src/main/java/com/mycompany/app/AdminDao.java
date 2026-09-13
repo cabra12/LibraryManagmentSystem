@@ -11,7 +11,7 @@ import java.util.List;
 
 public class AdminDao {
     public static Admin logInWithUsername(String username) {
-        String sql = "SELECT id, username, password, name, role FROM admins WHERE username = ?";
+        String sql = "SELECT id, username, password, name, role, must_change_password FROM admins WHERE username = ?";
         Admin admin = null;
 
         try(
@@ -22,7 +22,7 @@ public class AdminDao {
 
             try(ResultSet rs = stmt.executeQuery()) {
                 if(rs.next() == true) {
-                    admin = new Admin(rs.getInt("id"), rs.getString("username"), rs.getString("password"), rs.getString("name"), rs.getString("role"));
+                    admin = new Admin(rs.getInt("id"), rs.getString("username"), rs.getString("password"), rs.getString("name"), rs.getString("role"), rs.getBoolean("must_change_password"));
                 }
             }
 
@@ -36,7 +36,7 @@ public class AdminDao {
     }
 
     public static Admin getAdminById(int adminId) {
-        String sql = "SELECT id, name, password, name, role FROM admins WHERE id = ?";
+        String sql = "SELECT id, name, password, name, role, must_change_password FROM admins WHERE id = ?";
         Admin admin = null;
 
         //Prepared Statement because it has parameters
@@ -48,7 +48,7 @@ public class AdminDao {
 
             try(ResultSet rs = stmt.executeQuery()) {
                 if(rs.next() == true) {
-                    admin = new Admin(rs.getInt("id"), rs.getString("username"), rs.getString("password"), rs.getString("name"), rs.getString("role"));
+                    admin = new Admin(rs.getInt("id"), rs.getString("username"), rs.getString("password"), rs.getString("name"), rs.getString("role"), rs.getBoolean("must_change_password"));
                 }
             }
 
@@ -62,7 +62,7 @@ public class AdminDao {
     }
 
     public static List<Admin> getAllAdmins() {
-        String sql = "SELECT id, username, password, name, role FROM admins";
+        String sql = "SELECT id, username, password, name, role, must_change_password FROM admins";
         List<Admin> admins = new ArrayList<Admin>();
 
         try(
@@ -70,7 +70,7 @@ public class AdminDao {
             Statement stmt = conn.createStatement();
             ResultSet rs = stmt.executeQuery(sql)) {
                 while(rs.next()) {
-                    Admin admin = new Admin(rs.getInt("id"), rs.getString("username"), rs.getString("password"), rs.getString("name"), rs.getString("role"));
+                    Admin admin = new Admin(rs.getInt("id"), rs.getString("username"), rs.getString("password"), rs.getString("name"), rs.getString("role"), rs.getBoolean("must_change_password"));
                     admins.add(admin);
                 }
             } catch (SQLException| IOException e) {

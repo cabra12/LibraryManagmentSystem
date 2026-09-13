@@ -11,7 +11,7 @@ public class AuthHelper {
         String email = getEmailInput(scanner);
         String password = makeNewPassword(scanner);
 
-        Member newMember = new Member(name, email, password);
+        Member newMember = new Member(name, email, password, false);
         MemberDao.addMember(newMember);
         return newMember;
     }

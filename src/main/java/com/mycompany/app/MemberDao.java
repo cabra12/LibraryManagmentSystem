@@ -14,7 +14,7 @@ public class MemberDao {
     public static void addMember(Member member) {
         //RETURNING id tells Postgres "after you insert this row, hand back the id column value that was generated."
         //this is so newly created members can have their ID set
-        String sql = "INSERT INTO members (name, email, password) VALUES (?, ?, ?) RETURNING id";
+        String sql = "INSERT INTO members (name, email, password, must_change_password) VALUES (?, ?, ?, ?) RETURNING id";
 
         //PreparedStatement features of the JDBC API used to execute parameterized SQL queries securely and efficiently
         try(
@@ -24,6 +24,7 @@ public class MemberDao {
             stmt.setString(1, member.getName());
             stmt.setString(2, member.getEmail());
             stmt.setString(3, member.getPassword());
+            stmt.setBoolean(4, member.getPasswordChangeStatus());
 
             try(ResultSet rs = stmt.executeQuery()) {
                 if(rs.next()) {
@@ -39,7 +40,7 @@ public class MemberDao {
     }
 
     public static List<Member> getAllMembers() {
-        String sql = "SELECT id, name, email FROM members";
+        String sql = "SELECT id, name, email, must_change_password FROM members";
         List<Member> members = new ArrayList<Member>();
 
         //ResultSet in Java is an object that holds the data returned from a database after executing a SQL query (SELECT)
@@ -51,7 +52,7 @@ public class MemberDao {
             Statement stmt = conn.createStatement();
             ResultSet rs = stmt.executeQuery(sql)) {
                 while(rs.next()) {
-                    Member m = new Member(rs.getInt("id"), rs.getString("name"), rs.getString("email"));
+                    Member m = new Member(rs.getInt("id"), rs.getString("name"), rs.getString("email"), rs.getBoolean("must_change_password"));
                     members.add(m);
                 }
             } catch (SQLException| IOException e) {
@@ -64,7 +65,7 @@ public class MemberDao {
     }
 
     public static Member getMemberId(int id) {
-        String sql = "SELECT id, name, email FROM members WHERE id = ?";
+        String sql = "SELECT id, name, email, must_change_password FROM members WHERE id = ?";
         Member m = null;
 
         //Prepared Statement because it has parameters
@@ -76,7 +77,7 @@ public class MemberDao {
 
             try(ResultSet rs = stmt.executeQuery()) {
                 if(rs.next() == true) {
-                    m = new Member(rs.getInt("id"), rs.getString("name"), rs.getString("email"));
+                    m = new Member(rs.getInt("id"), rs.getString("name"), rs.getString("email"), rs.getBoolean("must_change_password"));
                 }
             }
 
@@ -91,7 +92,7 @@ public class MemberDao {
 
     //specifying columns instead of using * to make sure programmer knows this method uses password, something sensitive
     public static Member getMemberByEmail(String email) {
-        String sql = "SELECT id, name, email, password FROM members WHERE email = ?";
+        String sql = "SELECT id, name, email, password, must_change_password FROM members WHERE email = ?";
         Member m = null;
 
         try (
@@ -102,7 +103,7 @@ public class MemberDao {
 
             try(ResultSet rs = stmt.executeQuery()) {
                 if(rs.next() == true) {
-                    m = new Member(rs.getInt("id"), rs.getString("name"), rs.getString("email"), rs.getString("password"));
+                    m = new Member(rs.getInt("id"), rs.getString("name"), rs.getString("email"), rs.getString("password"), rs.getBoolean("must_change_password"));
                 }
             }
 
@@ -116,7 +117,7 @@ public class MemberDao {
     }
 
     public static List<Member> searchByName(String name) {
-        String sql = "SELECT id, name, email FROM members WHERE name ILIKE ?";
+        String sql = "SELECT id, name, email, must_change_password FROM members WHERE name ILIKE ?";
         List<Member> searchedMembers = new ArrayList<Member>();
 
         try(
@@ -127,7 +128,7 @@ public class MemberDao {
 
             try(ResultSet rs = stmt.executeQuery()) {
                 while(rs.next()) {
-                    Member m = new Member(rs.getInt("id"), rs.getString("name"), rs.getString("email"));
+                    Member m = new Member(rs.getInt("id"), rs.getString("name"), rs.getString("email"), rs.getBoolean("must_change_password"));
                     searchedMembers.add(m);
                 }
             }

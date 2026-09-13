@@ -3,26 +3,36 @@ package com.mycompany.app;
 import java.util.List;
 import java.util.Scanner;
 
+import org.mindrot.jbcrypt.BCrypt;
+
 public class AdminSession {
-    public static boolean runAdminSession(Scanner scanner) {
+    public static boolean runAdminSession(Scanner scanner, Admin admin) {
         boolean continueLoop = true;
-        int adminActionChoice = 0;
+        boolean isSuperAdmin = admin.getRole().equalsIgnoreCase("superadmin");
 
         while(continueLoop) {
+            int adminActionChoice = 0;
+            int maxChoice = isSuperAdmin ? 7 : 6;
             String exitChoice = "";
-            adminActionChoice = 0;
 
             
             System.out.println("\nWhat would you like to do?");
-            System.out.println("1. Add/Update/Delete Books");
-            System.out.println("2. Add/Update/Delete Members");
+            System.out.println("1. Manage Books (Add/Update/Delete)");
+            System.out.println("2. Manage Members (Add/Update/Delete)");
             System.out.println("3. View all members");
             System.out.println("4. View all borrowed books");
             System.out.println("5. View overdue books");
-            System.out.println("6. Exit");
 
-            while(adminActionChoice < 1 || adminActionChoice > 6) {
-                System.out.print("Enter your choice (1, 2, 3, 4, 5, or 6): ");
+            if(isSuperAdmin) {
+                System.out.println("6. Manage Admin (Add/Update/Delete)");
+                System.out.println("View all Admin");
+                System.out.println("7. Exit");
+            } else {
+                System.out.println("6. Exit");
+            }
+
+            while(adminActionChoice < 1 || adminActionChoice > maxChoice) {
+                System.out.print("Enter your choice (1-" + maxChoice + "): ");
                 if(scanner.hasNextInt()) {
                     adminActionChoice = scanner.nextInt();
                     scanner.nextLine();
@@ -32,7 +42,7 @@ public class AdminSession {
                 }
             }
             
-            if(adminActionChoice == 6) {
+            if(adminActionChoice == maxChoice) {
                 System.out.println("Are you sure you want to exit? Y/N: ");
                 while(!(exitChoice.equalsIgnoreCase("Y")) && !(exitChoice.equalsIgnoreCase("N"))) {
                     exitChoice = scanner.nextLine();
@@ -46,14 +56,14 @@ public class AdminSession {
                 }
                 
             } else {
-                adminActions(adminActionChoice, scanner);
+                adminActions(adminActionChoice, scanner, isSuperAdmin);
             }
         }
 
         return continueLoop;
     }
 
-    public static void adminActions(int adminActionChoice, Scanner scanner) {
+    public static void adminActions(int adminActionChoice, Scanner scanner, boolean isSuperAdmin) {
         switch(adminActionChoice) {
             case 1:
                 String bookActionChoice = addUpdateDeleteItem(scanner, "book");
@@ -108,9 +118,11 @@ public class AdminSession {
                     String name = scanner.nextLine();
                     
                     emailInput = verifyInputIsEmail(scanner);
-
-                    // Member member = new Member(name, emailInput);
-                    // MemberDao.addMember(member);
+                    String tempPassword = gettingHashedTempPassword();
+                    Member member = new Member(name, emailInput, tempPassword, true);
+                    MemberDao.addMember(member);
+                    System.out.println("Temporary password: " + tempPassword);
+                    System.out.println("Give this to the new member directly — they'll be required to change it on first login.");
                 }else if (memberActionChoice.equalsIgnoreCase("Update")) {
                     System.out.println("Let's search the member you'd like to update: ");
                     Member updateMember = searchMembersAndDisplay(scanner, "update");
@@ -146,6 +158,26 @@ public class AdminSession {
                 System.out.println("Here are all the overdue books: ");
                 List<BorrowedBook> allOverdueBooks = BorrowedBookDao.getOverdueBooks();
                 printBorrowedBooks(allOverdueBooks);
+                break;
+            case 6: 
+                if(isSuperAdmin) {
+                    String changingAdminActionChoice = addUpdateDeleteItem(scanner, "admin");
+                    //manage admins logic
+                    if(changingAdminActionChoice.equalsIgnoreCase(("Add"))) {
+                        System.out.print("Enter admin's username: ");
+                        String username = scanner.nextLine();
+                        String tempPassword = PasswordUtil.generateTempPassword();
+                        System.out.print("Enter admin's full name: ");
+                        String name = scanner.nextLine();
+
+                        Admin admin = new Admin(username, tempPassword, name);
+                        AdminDao.addAdmin(admin);
+                        System.out.println("Temporary password: " + tempPassword);
+                        System.out.println("Give this to the new admin directly. They'll be required to change it on first login.");
+                    }
+                } else {
+                    System.out.println("Access denied: this action requires superadmin privileges.");
+                }
                 break;
             default:
                 System.out.println("Invalid option");
@@ -449,5 +481,11 @@ public class AdminSession {
             List<BorrowedBook> overdueBooksByMember = BorrowedBookDao.getOverdueBooksByMember(member.getId());
             System.out.println("Member ID: " + member.getId() + " | Name: " + member.getName() + " | Email: " + member.getEmail() + " | Number of Books Borrowed: " + booksBorrowedByMember.size() + " | Number of Overdue Books: " + overdueBooksByMember.size());
         }
+    }
+
+    public static String gettingHashedTempPassword() {
+        String tempPassword = PasswordUtil.generateTempPassword();
+        String hashedPassword = BCrypt.hashpw(tempPassword, BCrypt.gensalt());
+        return hashedPassword;
     }
 }

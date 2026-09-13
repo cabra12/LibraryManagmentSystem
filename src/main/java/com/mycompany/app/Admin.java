@@ -6,19 +6,29 @@ public class Admin {
     private String password;
     private String name;
     private String role;
+    private boolean mustChangePassword;
 
+    public Admin(String username, String password, String name, boolean mustChangePassword) {
+        this.username = username;
+        this.password = password;
+        this.name = name;
+        this.mustChangePassword = mustChangePassword;
+    }
+
+    //for Insert
     public Admin(String username, String password, String name) {
         this.username = username;
         this.password = password;
         this.name = name;
     }
 
-    public Admin(int id, String username, String password, String name, String role) {
+    public Admin(int id, String username, String password, String name, String role, boolean mustChangePassword) {
         this.id = id;
         this.username = username;
         this.password = password;
         this.name = name;
         this.role = role;
+        this.mustChangePassword = mustChangePassword;
     }
 
     public int getId() {
@@ -55,5 +65,13 @@ public class Admin {
 
     public String getRole() {
         return role;
+    }
+
+    public boolean getPasswordChangeStatus() {
+        return mustChangePassword;
+    }
+
+    public void setPasswordChangeStatus(boolean passwordChangeStatusInput) {
+        this.mustChangePassword = passwordChangeStatusInput;
     }
 }

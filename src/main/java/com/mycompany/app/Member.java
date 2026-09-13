@@ -5,25 +5,29 @@ public class Member {
     private String name;
     private String email;
     private String password;
+    private boolean mustChangePassword;
 
-    public Member(int id, String name, String email) {
+    public Member(int id, String name, String email, boolean mustChangePassword) {
         this.id = id;
         this.name = name;
         this.email = email;
+        this.mustChangePassword = mustChangePassword;
     }
 
     //creating a new member to insert, postgres will generate an ID once you insert it
-    public Member(String name, String email, String password) {
+    public Member(String name, String email, String password, boolean mustChangePassword) {
         this.name = name;
         this.email = email;
         this.password = password;
+        this.mustChangePassword = mustChangePassword;
     }
 
-    public Member(int id, String name, String email, String password) {
+    public Member(int id, String name, String email, String password, boolean mustChangePassword) {
         this.id = id;
         this.name = name;
         this.email = email;
         this.password = password;
+        this.mustChangePassword = mustChangePassword;
     }
 
     public int getId() {
@@ -54,7 +58,15 @@ public class Member {
         return password;
     }
 
-    public void setPassword(String password) {
-        this.password = password;
+    public void setPassword(String passwordInput) {
+        this.password = passwordInput;
+    }
+
+    public boolean getPasswordChangeStatus() {
+        return mustChangePassword;
+    }
+
+    public void setPasswordChangeStatus(boolean passwordChangeStatusInput) {
+        this.mustChangePassword = passwordChangeStatusInput;
     }
 }

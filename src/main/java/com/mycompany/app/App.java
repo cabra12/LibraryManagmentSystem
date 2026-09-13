@@ -50,7 +50,7 @@ public class App {
             } else if (userType.equalsIgnoreCase("Admin")) {
 
                 admin = AuthHelper.logInAsAdmin(scanner);
-                continueLoop = AdminSession.runAdminSession(scanner);
+                continueLoop = AdminSession.runAdminSession(scanner, admin);
 
             }
             
