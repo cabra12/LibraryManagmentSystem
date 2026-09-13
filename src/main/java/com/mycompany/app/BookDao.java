@@ -99,6 +99,31 @@ public class BookDao {
         return b;
     }
 
+    public static Book getBookByIsbn(String isbn) {
+        String sql = "SELECT * FROM books WHERE isbn = ?";
+        Book book = null;
+
+        try(
+            Connection conn = DBConnection.getConnection(); 
+            PreparedStatement stmt = conn.prepareStatement(sql)) 
+        {
+            stmt.setString(1, isbn);
+
+            try(ResultSet rs = stmt.executeQuery()) {
+                if(rs.next() == true) {
+                    book = new Book(rs.getInt("id"), rs.getString("title"), rs.getString("author"), rs.getString("isbn"), rs.getInt("total_copies"), rs.getInt("available_copies"));
+                }
+            }
+
+        } catch(SQLException| IOException e) {
+            System.out.println("Failed to load book: " + e.getMessage());
+        } catch(Exception e) {
+            e.printStackTrace();
+        }
+
+        return book;
+    }
+
     public static List<Book> searchByTitle(String title) {
         String sql = "SELECT * FROM books WHERE title ILIKE ?";
         List<Book> searchedBooks = new ArrayList<Book>();

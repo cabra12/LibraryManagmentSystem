@@ -69,37 +69,76 @@ public class AdminSession {
                 String bookActionChoice = addUpdateDeleteItem(scanner, "book");
 
                 if(bookActionChoice.equalsIgnoreCase("Add")) {
-                    System.out.print("Type in the title of the book: ");
-                    String title = scanner.nextLine();
-                    System.out.print("Type in the author of the book: ");
-                    String author = scanner.nextLine();
-                    System.out.print("Type in the ISBN of the book: ");
-                    String isbn = scanner.nextLine();
-                    int totalCopies = verifyInputIsNum("Enter the numerical value of the total copies currently purchased of the book: ", scanner, true);
-                    int availableCopies = verifyInputIsNum("Enter the numerical value of the available copies of the book in the library: ", scanner, false);
- 
-                    while(availableCopies > totalCopies) {
-                        System.out.println("Your available copies cannot be more than your total copies");
-                        System.out.println("You entered you had " + availableCopies + " available copies and " + totalCopies + " total copies. Please fix it");
-                        availableCopies = verifyInputIsNum("Enter the numerical value of the available copies of the book in the library: ", scanner, false);
-                    }
- 
 
-                    Book book = new Book(title, author, isbn, totalCopies, availableCopies);
-                    BookDao.addBook(book);
+                    boolean bookAdded = false;
+
+                    while(!bookAdded) {
+                        String title = verifyInputIsNotEmpty("Type in the title of the book: ", scanner, false);
+                        String author = verifyInputIsNotEmpty("Type in the author of the book: ", scanner, false);
+                        String isbn = verifyInputIsNotEmpty("Type in the ISBN of the book: ", scanner, false);
+
+                        if(BookDao.getBookByIsbn(isbn) != null) {
+                            System.out.println("That ISBN is already in the system. Please check your book and try again.");
+                            continue;
+                        }
+
+                        int totalCopies = verifyInputIsNum("Enter the numerical value of the total copies currently purchased of the book: ", scanner, true);
+                        int availableCopies = verifyInputIsNum("Enter the numerical value of the available copies of the book in the library: ", scanner, false);
+     
+                        while(availableCopies > totalCopies) {
+                            System.out.println("Your available copies cannot be more than your total copies");
+                            System.out.println("You entered you had " + availableCopies + " available copies and " + totalCopies + " total copies. Please fix it");
+                            availableCopies = verifyInputIsNum("Enter the numerical value of the available copies of the book in the library: ", scanner, false);
+                        }
+
+                        Book book = new Book(title, author, isbn, totalCopies, availableCopies);
+                        DaoResult addBookResult = BookDao.addBook(book);
+
+                        switch(addBookResult) {
+                            case SUCCESS:
+                                bookAdded = true;
+                                break;
+                            case DUPLICATE_KEY:
+                                System.out.println("That ISBN is already in the system. Please check your book and try again.");    
+                                System.out.println("Let's start over with the book's details.");                            
+                                break;
+                            case DATABASE_ERROR:
+                                System.out.println("Something went wrong");
+                                break;
+                        }
+                    }
+
                 } else if(bookActionChoice.equalsIgnoreCase("Update")) {
 
                     List<Book> searchBooksToUpdate = searchForBooks(scanner);
 
-                    Book book = findBookByIdInput(searchBooksToUpdate, scanner, "update");
-                    System.out.println("What would you like to update?");
-                    System.out.println("To update title, press 'T'");
-                    System.out.println("To update author, press 'A'");
-                    System.out.println("To update isbn, press 'I'");
-                    System.out.println("To update total copies, press 'TC'");
-                    System.out.println("To update available copies, press 'AC'");
-                    book = changeBookDetails(book, scanner);
-                    BookDao.updateBook(book);
+                    Book updateBook = findBookByIdInput(searchBooksToUpdate, scanner, "update");
+
+                    boolean bookUpdateSucceeded = false;
+                    while(!bookUpdateSucceeded) {
+                        System.out.println("What would you like to update?");
+                        System.out.println("To update title, press 'T'");
+                        System.out.println("To update author, press 'A'");
+                        System.out.println("To update isbn, press 'I'");
+                        System.out.println("To update total copies, press 'TC'");
+                        System.out.println("To update available copies, press 'AC'");
+                        updateBook = changeBookDetails(updateBook, scanner);
+                        DaoResult updateResult = BookDao.updateBook(updateBook);
+    
+                        switch (updateResult) {
+                            case SUCCESS:
+                                bookUpdateSucceeded = true;
+                                System.out.println("Successful update.");
+                                break;
+                            case DUPLICATE_KEY:
+                                System.out.println("That ISBN is already taken. Please try a different one.");
+                                break;
+                            case DATABASE_ERROR:
+                                System.out.println("Something went wrong updating the book. Please try again.");
+                                break;
+                        }
+                    }
+
 
                 } else if(bookActionChoice.equalsIgnoreCase("Delete")) {
                     List<Book> searchBooksToDelete = searchForBooks(scanner);
@@ -517,15 +556,15 @@ public class AdminSession {
         if(input.equalsIgnoreCase("T")) {
             String newTitle = verifyInputIsNotEmpty("Your title of the selected book is currently " + book.getTitle() + ". What would you like to change the book title to?: ", scanner, false);
             book.setTitle(newTitle);
-            System.out.println("Successful change. The book's title is now " + book.getTitle());
+            System.out.println("Title is now set to " + book.getTitle() + ". Saving...");
         }else if(input.equalsIgnoreCase("A")){
             String newAuthor = verifyInputIsNotEmpty("Your author of the selected book is currently " + book.getAuthor() + ". What would you like to change the book author to?: ", scanner, false);
             book.setAuthor(newAuthor);
-            System.out.println("Successful change. The book's author is now " + book.getAuthor());
+            System.out.println("Author is now set to " + book.getAuthor() + ". Saving...");
         }else if(input.equalsIgnoreCase("I")){
             String newISBN = verifyInputIsNotEmpty("Your book ISBN is currently "  + book.getIsbn() + ". What would you like to change the book ISBN to?: ", scanner, false);
             book.setIsbn(newISBN);
-            System.out.println("Successful change. The book's ISBN is now " + book.getIsbn());
+            System.out.println("ISBN is now set to " + book.getIsbn() + ". Saving...");
         }else if(input.equalsIgnoreCase("TC")){
             int newTotalCopyValue = -1;
             while(newTotalCopyValue < book.getAvailableCopies()) {
@@ -541,7 +580,7 @@ public class AdminSession {
             }
             
             book.setTotalCopies(newTotalCopyValue);
-            System.out.println("Successful change. The book's total copies are now " + book.getTotalCopies());
+            System.out.println("Total copies are now set to " + book.getTitle() + ". Saving...");
         }else if(input.equalsIgnoreCase("AC")){
             int newAvailValue = book.getTotalCopies() + 1;
             while(newAvailValue > book.getTotalCopies()) {
@@ -557,7 +596,8 @@ public class AdminSession {
             }
 
             book.setAvailableCopies(newAvailValue);
-            System.out.println("Successful change. The book's available copies are now " + book.getAvailableCopies());
+            System.out.println("Available copies are now set to " + book.getTitle() + ". Saving...");
+
         }
 
         return book;
