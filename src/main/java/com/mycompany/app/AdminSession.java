@@ -12,7 +12,7 @@ public class AdminSession {
 
         while(continueLoop) {
             int adminActionChoice = 0;
-            int maxChoice = isSuperAdmin ? 7 : 6;
+            int maxChoice = isSuperAdmin ? 8 : 6;
             String exitChoice = "";
 
             
@@ -25,8 +25,8 @@ public class AdminSession {
 
             if(isSuperAdmin) {
                 System.out.println("6. Manage Admin (Add/Update/Delete)");
-                System.out.println("View all Admin");
-                System.out.println("7. Exit");
+                System.out.println("7. View all Admin");
+                System.out.println("8. Exit");
             } else {
                 System.out.println("6. Exit");
             }
@@ -118,8 +118,10 @@ public class AdminSession {
                     String name = scanner.nextLine();
                     
                     emailInput = verifyInputIsEmail(scanner);
-                    String tempPassword = gettingHashedTempPassword();
-                    Member member = new Member(name, emailInput, tempPassword, true);
+                    String[] result = gettingHashedTempPassword();
+                    String hashedPassword = result[0];
+                    String tempPassword = result[1];
+                    Member member = new Member(name, emailInput, hashedPassword, true);
                     MemberDao.addMember(member);
                     System.out.println("Temporary password: " + tempPassword);
                     System.out.println("Give this to the new member directly — they'll be required to change it on first login.");
@@ -162,19 +164,90 @@ public class AdminSession {
             case 6: 
                 if(isSuperAdmin) {
                     String changingAdminActionChoice = addUpdateDeleteItem(scanner, "admin");
-                    //manage admins logic
+                    
                     if(changingAdminActionChoice.equalsIgnoreCase(("Add"))) {
-                        System.out.print("Enter admin's username: ");
-                        String username = scanner.nextLine();
-                        String tempPassword = PasswordUtil.generateTempPassword();
-                        System.out.print("Enter admin's full name: ");
-                        String name = scanner.nextLine();
+                        boolean adminAdded = false;
 
-                        Admin admin = new Admin(username, tempPassword, name);
-                        AdminDao.addAdmin(admin);
-                        System.out.println("Temporary password: " + tempPassword);
-                        System.out.println("Give this to the new admin directly. They'll be required to change it on first login.");
+                        while(!adminAdded) {
+                            System.out.print("Enter admin's username: ");
+                            String username = scanner.nextLine();
+    
+                            if(AdminDao.getAdminByUsername(username) != null) {
+                                System.out.println("That username is already taken. Please choose a different one.");
+                                continue;
+                            } 
+    
+                            System.out.print("Enter admin's full name: ");
+                            String name = scanner.nextLine();
+        
+                            String[] result = gettingHashedTempPassword();
+                            String hashedPassword = result[0];
+                            String tempPassword = result[1];
+        
+                            Admin newAdmin = new Admin(username, hashedPassword, name);
+                            DaoResult addResult = AdminDao.addAdmin(newAdmin);
+                            
+    
+                            switch (addResult) {
+                                case SUCCESS:
+                                    adminAdded = true;
+                                    System.out.println("Temporary password: " + tempPassword);
+                                    System.out.println("Give this to the new admin directly. They'll be required to change it on first login.");
+                                    break;
+                                case DUPLICATE_KEY:
+                                    System.out.println("That username is already taken. Please choose a different one.");
+                                    break;
+                                case DATABASE_ERROR:
+                                    System.out.println("Something went wrong adding the admin. Please try again.");
+                                    break;
+                            }
+                        }
+
+                    }else if(changingAdminActionChoice.equalsIgnoreCase("Update")) {
+                        System.out.println("Let's search the admin you'd like to update: ");
+                        Admin updateAdmin = searchAdminsAndDisplayOne(scanner, "update");
+
+                        boolean updateSucceeded = false;
+                        while(!updateSucceeded) {
+                            System.out.println("What admin info would you like to update?");
+                            System.out.println("To update name, press 'N'");
+                            System.out.println("To update username, press 'U'");
+                            System.out.println("To update password, press 'P'");
+                            updateAdmin = changeAdminDetails(updateAdmin, scanner);
+                            DaoResult updateResult = AdminDao.updateAdmin(updateAdmin);
+
+                            switch (updateResult) {
+                                case SUCCESS:
+                                    updateSucceeded = true;
+                                    System.out.println("Successful update.");
+                                    break;
+                                case DUPLICATE_KEY:
+                                    System.out.println("That username is already taken. Please try a different one.");
+                                    break;
+                                case DATABASE_ERROR:
+                                    System.out.println("Something went wrong updating the admin. Please try again.");
+                                    break;
+                            }
+                        }
+                    }else if(changingAdminActionChoice.equalsIgnoreCase("Delete")) {
+                        System.out.println("Let's search the admin you'd like to delete.");
+                        Admin deleteAdmin = searchAdminsAndDisplayOne(scanner, "delete");
+                        
+                        if (deleteAdmin.getRole().equalsIgnoreCase("superadmin")) {
+                            System.out.println("The superadmin account cannot be deleted.");
+                        } else {
+                            AdminDao.deleteAdmin(deleteAdmin.getId());
+                        }
                     }
+                } else {
+                    System.out.println("Access denied: this action requires superadmin privileges.");
+                }
+                break;
+            case 7:
+                if (isSuperAdmin) {
+                    System.out.println("Here are all the admins of the Library Database:");
+                    List<Admin> allAdmins = AdminDao.getAllAdmins();
+                    printAllAdmins(allAdmins);
                 } else {
                     System.out.println("Access denied: this action requires superadmin privileges.");
                 }
@@ -358,6 +431,53 @@ public class AdminSession {
         }
     }
 
+    public static Admin searchAdminsAndDisplayOne(Scanner scanner, String action) {
+
+        List<Admin> listOfAdmins = AdminDao.getAllAdmins();
+        System.out.println("Here are all the admins in the system:");
+        for(Admin oneAdmin : listOfAdmins) {
+            System.out.println("ID: " + oneAdmin.getId() + " | Name: " + oneAdmin.getName() + "| Username: " + oneAdmin.getUsername() + "| Role: " + oneAdmin.getRole() + "| Need to Change Temp Password?: " + oneAdmin.getPasswordChangeStatus());
+        }
+
+        boolean continueLoop = true;
+        Admin admin = null;
+        while(continueLoop) {
+            continueLoop = true;
+            admin = null;
+
+            System.out.print("Enter the id of the admin you'd like to " + action + ": ");
+            int idUpdateAdmin = 0;
+            if (scanner.hasNextInt()) {
+                idUpdateAdmin = scanner.nextInt();
+                scanner.nextLine();
+            } else {
+                System.out.println("Please enter a number");
+                scanner.nextLine();
+                continue;
+            }
+            admin = AdminDao.getAdminById(idUpdateAdmin);
+
+            if(admin == null) {
+                System.out.println("An incorrect id for an admin was entered. Look at the list of admin and try again.");
+            }else {
+                System.out.println("Here's the admin you choose: ");
+                System.out.println("ID: " + admin.getId() + "| Name: " + admin.getName());
+                System.out.print("Is this the admin whose information needs to be " + action + "d? Type yes or no: ");
+                String confirmation = scanner.nextLine();
+    
+                if(confirmation.equalsIgnoreCase("yes")) {
+                    continueLoop = false;
+                }else if(confirmation.equalsIgnoreCase("no")) {
+                    continueLoop = true;
+                    System.out.println("Let's try again...");
+                } else {
+                    System.out.println("Please type yes or no.");
+                }
+            }
+        }
+        return admin;
+    }
+
     public static Book findBookByIdInput(List<Book> listOfBooksSearched, Scanner scanner, String action) {
         int bookId = 0;
     
@@ -467,6 +587,41 @@ public class AdminSession {
         return member;
     }
 
+    public static Admin changeAdminDetails(Admin admin, Scanner scanner) {
+        String input = "";
+        while(!(input.equalsIgnoreCase("N")) && !(input.equalsIgnoreCase("U")) && !(input.equalsIgnoreCase("P"))) {
+            System.out.print("Enter the symbol: ");
+            input = scanner.nextLine();
+
+            if(!(input.equalsIgnoreCase("N")) && !(input.equalsIgnoreCase("U")) && !(input.equalsIgnoreCase("P"))) {
+                System.out.println("You did not input the correct value. Try again.");
+            }
+        }
+
+        if(input.equalsIgnoreCase("N")) {
+            System.out.print("The admin is currently called " + admin.getName() + ". What would you like to change it to?: ");
+            String newName = scanner.nextLine();
+            admin.setName(newName);
+            System.out.println("Successful change. The admin's name is now " + admin.getName());
+        }else if(input.equalsIgnoreCase("U")){
+            System.out.print("The admin's username is currently " + admin.getUsername() + ". What would you like to change it to?: ");
+            String newUsername = scanner.nextLine();
+            admin.setUsername(newUsername);
+            System.out.println("Username set to " + admin.getUsername() + ". Saving...");
+        }else if(input.equalsIgnoreCase("P")) {
+            String[] result = gettingHashedTempPassword();
+            String hashedPassword = result[0];
+            String tempPassword = result[1];
+
+            admin.setPassword(hashedPassword);
+            admin.setPasswordChangeStatus(true);
+            System.out.println("Password reset. Temporary password: " + tempPassword);
+            System.out.println("Give this to the admin directly. They'll be required to change it on next login.");
+        }
+
+        return admin;
+    }
+
     public static void printBorrowedBooks(List<BorrowedBook> listOfBooksObject) {
         for(BorrowedBook borrowedBook: listOfBooksObject) {
             Book book = BookDao.getBookById(borrowedBook.getBookId());
@@ -483,9 +638,15 @@ public class AdminSession {
         }
     }
 
-    public static String gettingHashedTempPassword() {
+    public static void printAllAdmins(List<Admin> listOfAdminObjects) {
+        for(Admin admin: listOfAdminObjects) {
+            System.out.println("Admin ID: " + admin.getId() + " | Name: " + admin.getName() + " | Username: " + admin.getUsername() + " | Role: " + admin.getRole() + " | Password Change Needed?: " + admin.getPasswordChangeStatus());
+        }
+    }
+
+    public static String[] gettingHashedTempPassword() {
         String tempPassword = PasswordUtil.generateTempPassword();
         String hashedPassword = BCrypt.hashpw(tempPassword, BCrypt.gensalt());
-        return hashedPassword;
+        return new String[]{hashedPassword, tempPassword};
     }
 }
