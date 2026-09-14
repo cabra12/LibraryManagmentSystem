@@ -195,7 +195,13 @@ public class MemberDao {
             stmt.executeUpdate();
             System.out.println("Member deleted successfully");
 
-        } catch(SQLException | IOException e) {
+        } catch(SQLException e) {
+            if ("23503".equals(e.getSQLState())) {
+                System.out.println("This member cannot be deleted because they have books checked out.");
+            } else {
+                System.out.println("Failed to delete member: " + e.getMessage());
+            }
+        } catch(IOException e) {
             System.out.println("Failed to delete member: " + e.getMessage());
         } catch(Exception e) {
             e.printStackTrace();

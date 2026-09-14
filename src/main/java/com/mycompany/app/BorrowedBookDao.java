@@ -209,6 +209,31 @@ public class BorrowedBookDao {
         return borrowedBooks;
     }
 
+    public static List<BorrowedBook> getBorrowedBooksByBookId(int bookId) {
+        String sql = "SELECT * FROM borrowed_books WHERE book_id = ? AND return_date IS NULL";
+        List<BorrowedBook> borrowedBooks = new ArrayList<BorrowedBook>();
+
+        try ( 
+            Connection conn = DBConnection.getConnection(); 
+            PreparedStatement stmt = conn.prepareStatement(sql)) 
+        {
+            stmt.setInt(1, bookId);
+
+            try(ResultSet rs = stmt.executeQuery()) {
+                while(rs.next()) {
+                    BorrowedBook bb = new BorrowedBook(rs.getInt("id"), rs.getInt("book_id"), rs.getInt("member_id"), rs.getDate("borrow_date"), rs.getDate("due_date"), rs.getDate("return_date"));
+                    borrowedBooks.add(bb);
+                }
+            }
+        } catch(SQLException| IOException e) {
+            System.out.println("Failed to load borrowed books: " + e.getMessage());
+        } catch(Exception e) {
+            e.printStackTrace();
+        }
+
+        return borrowedBooks;
+    }
+
     public static List<BorrowedBook> getOverdueBooks() {
         String sql = "SELECT * FROM borrowed_books WHERE due_date < CURRENT_DATE AND return_date IS NULL";
 

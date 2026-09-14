@@ -95,19 +95,14 @@ public class AdminSession {
                         DaoResult addBookResult = BookDao.addBook(book);
 
                         switch(addBookResult) {
-                            case SUCCESS:
-                                bookAdded = true;
-                                break;
-                            case DUPLICATE_KEY:
+                            case SUCCESS -> bookAdded = true;
+                            case DUPLICATE_KEY -> {
                                 System.out.println("That ISBN is already in the system. Please check your book and try again.");    
-                                System.out.println("Let's start over with the book's details.");                            
-                                break;
-                            case DATABASE_ERROR:
-                                System.out.println("Something went wrong");
-                                break;
+                                System.out.println("Let's start over with the book's details."); 
+                            }
+                            case DATABASE_ERROR -> System.out.println("Something went wrong");
                         }
                     }
-
                 } else if(bookActionChoice.equalsIgnoreCase("Update")) {
 
                     List<Book> searchBooksToUpdate = searchForBooks(scanner);
@@ -125,53 +120,82 @@ public class AdminSession {
                         updateBook = changeBookDetails(updateBook, scanner);
                         DaoResult updateResult = BookDao.updateBook(updateBook);
     
-                        switch (updateResult) {
-                            case SUCCESS:
+                        switch(updateResult) {
+                            case SUCCESS -> {
                                 bookUpdateSucceeded = true;
-                                System.out.println("Successful update.");
-                                break;
-                            case DUPLICATE_KEY:
-                                System.out.println("That ISBN is already taken. Please try a different one.");
-                                break;
-                            case DATABASE_ERROR:
-                                System.out.println("Something went wrong updating the book. Please try again.");
-                                break;
+                                System.out.println("Successful update.");              
+                            }
+                            case DUPLICATE_KEY -> System.out.println("That ISBN is already taken. Please try a different one.");
+                            case DATABASE_ERROR -> System.out.println("Something went wrong updating the book. Please try again.");
                         }
                     }
-
-
                 } else if(bookActionChoice.equalsIgnoreCase("Delete")) {
                     List<Book> searchBooksToDelete = searchForBooks(scanner);
 
                     Book book = findBookByIdInput(searchBooksToDelete, scanner, "delete");
-                    BookDao.deleteBook(book.getId());
+                    List<BorrowedBook> activeBorrowsOfBook = BorrowedBookDao.getBorrowedBooksByBookId(book.getId());
+                    
+                    if(!activeBorrowsOfBook.isEmpty()) {
+                        System.out.println("This book is currently checked out and cannot be deleted.");
+                    } else {
+                        BookDao.deleteBook(book.getId());
+                    }
                 }
-                
                 break;
             case 2:
                 String memberActionChoice = addUpdateDeleteItem(scanner, "member");
                 String emailInput = "";
 
                 if(memberActionChoice.equalsIgnoreCase("Add")){
-                    System.out.print("Type in the member's full name: ");
-                    String name = scanner.nextLine();
-                    
-                    emailInput = verifyInputIsEmail(scanner);
-                    String[] result = gettingHashedTempPassword();
-                    String hashedPassword = result[0];
-                    String tempPassword = result[1];
-                    Member member = new Member(name, emailInput, hashedPassword, true);
-                    MemberDao.addMember(member);
-                    System.out.println("Temporary password: " + tempPassword);
-                    System.out.println("Give this to the new member directly — they'll be required to change it on first login.");
+
+                    String name = verifyInputIsNotEmpty("Type in the member's full name: ", scanner, false);
+                    boolean memberAdded = false;
+                    while(!memberAdded) {
+                        emailInput = verifyInputIsEmail(scanner);
+
+                        if(MemberDao.getMemberByEmail(emailInput) != null) {
+                            System.out.println("That email is already taken. Please choose a different one.");
+                            continue;
+                        } 
+
+                        String[] result = gettingHashedTempPassword();
+                        String hashedPassword = result[0];
+                        String tempPassword = result[1];
+                        Member member = new Member(name, emailInput, hashedPassword, true);
+                        DaoResult addMemberResult = MemberDao.addMember(member);
+
+                        switch(addMemberResult) {
+                            case SUCCESS -> {
+                                memberAdded = true;
+                                System.out.println("Temporary password: " + tempPassword);
+                                System.out.println("Give this to the new member directly. They'll be required to change it on first login.");
+                            }
+                            case DUPLICATE_KEY -> System.out.println("That email is already taken. Please choose a different one.");
+                            case DATABASE_ERROR -> System.out.println("Something went wrong adding the member. Please try again.");
+                        } 
+                    }
                 }else if (memberActionChoice.equalsIgnoreCase("Update")) {
                     System.out.println("Let's search the member you'd like to update: ");
                     Member updateMember = searchMembersAndDisplay(scanner, "update");
-                    System.out.println("What member info would you like to update?");
-                    System.out.println("To update name, press 'N'");
-                    System.out.println("To update email, press 'E'");
-                    updateMember = changeMemberDetails(updateMember, scanner);
-                    MemberDao.updateMember(updateMember);
+
+                    boolean updatingMemberSucceeded = false;
+                    while(!updatingMemberSucceeded) {
+                        System.out.println("What member info would you like to update?");
+                        System.out.println("To update name, press 'N'");
+                        System.out.println("To update email, press 'E'");
+                        updateMember = changeMemberDetails(updateMember, scanner);
+                        DaoResult updateMemberResult = MemberDao.updateMember(updateMember);
+
+                        switch(updateMemberResult) {
+                            case SUCCESS -> {
+                                updatingMemberSucceeded = true;
+                                System.out.println("Successful update");
+                            }
+                            case DUPLICATE_KEY -> System.out.println("The email is already taken. Please try a different one");
+                            case DATABASE_ERROR -> System.out.println("Something went wrong updating the member. Please try again.");
+                        }
+                    }
+
                 }else if(memberActionChoice.equalsIgnoreCase("Delete")) {
                     System.out.println("Let's search the member you'd like to delete: ");
                     Member deleteMember = searchMembersAndDisplay(scanner, "delete");
@@ -208,16 +232,14 @@ public class AdminSession {
                         boolean adminAdded = false;
 
                         while(!adminAdded) {
-                            System.out.print("Enter admin's username: ");
-                            String username = scanner.nextLine();
+                            String username = verifyInputIsNotEmpty("Enter admin's username: ", scanner, false);
     
                             if(AdminDao.getAdminByUsername(username) != null) {
                                 System.out.println("That username is already taken. Please choose a different one.");
                                 continue;
                             } 
     
-                            System.out.print("Enter admin's full name: ");
-                            String name = scanner.nextLine();
+                            String name = verifyInputIsNotEmpty("Enter admin's full name: ", scanner, false);
         
                             String[] result = gettingHashedTempPassword();
                             String hashedPassword = result[0];
@@ -226,19 +248,15 @@ public class AdminSession {
                             Admin newAdmin = new Admin(username, hashedPassword, name);
                             DaoResult addResult = AdminDao.addAdmin(newAdmin);
                             
-    
-                            switch (addResult) {
-                                case SUCCESS:
+                            switch(addResult) {
+                                case SUCCESS -> {
                                     adminAdded = true;
                                     System.out.println("Temporary password: " + tempPassword);
                                     System.out.println("Give this to the new admin directly. They'll be required to change it on first login.");
-                                    break;
-                                case DUPLICATE_KEY:
-                                    System.out.println("That username is already taken. Please choose a different one.");
-                                    break;
-                                case DATABASE_ERROR:
-                                    System.out.println("Something went wrong adding the admin. Please try again.");
-                                    break;
+                                }
+                                case DUPLICATE_KEY -> System.out.println("That username is already taken. Please choose a different one.");
+                                case DATABASE_ERROR ->System.out.println("Something went wrong adding the admin. Please try again.");
+
                             }
                         }
 
@@ -255,17 +273,13 @@ public class AdminSession {
                             updateAdmin = changeAdminDetails(updateAdmin, scanner);
                             DaoResult updateResult = AdminDao.updateAdmin(updateAdmin);
 
-                            switch (updateResult) {
-                                case SUCCESS:
+                            switch(updateResult) {
+                                case SUCCESS -> {
                                     updateSucceeded = true;
-                                    System.out.println("Successful update.");
-                                    break;
-                                case DUPLICATE_KEY:
-                                    System.out.println("That username is already taken. Please try a different one.");
-                                    break;
-                                case DATABASE_ERROR:
-                                    System.out.println("Something went wrong updating the admin. Please try again.");
-                                    break;
+                                    System.out.println("Successful update.");                              
+                                }
+                                case DUPLICATE_KEY -> System.out.println("That username is already taken. Please try a different one.");
+                                case DATABASE_ERROR -> System.out.println("Something went wrong updating the admin. Please try again.");
                             }
                         }
                     }else if(changingAdminActionChoice.equalsIgnoreCase("Delete")) {
@@ -580,7 +594,7 @@ public class AdminSession {
             }
             
             book.setTotalCopies(newTotalCopyValue);
-            System.out.println("Total copies are now set to " + book.getTitle() + ". Saving...");
+            System.out.println("Total copies are now set to " + book.getTotalCopies() + ". Saving...");
         }else if(input.equalsIgnoreCase("AC")){
             int newAvailValue = book.getTotalCopies() + 1;
             while(newAvailValue > book.getTotalCopies()) {
@@ -594,10 +608,8 @@ public class AdminSession {
                 }
 
             }
-
             book.setAvailableCopies(newAvailValue);
-            System.out.println("Available copies are now set to " + book.getTitle() + ". Saving...");
-
+            System.out.println("Available copies are now set to " + book.getAvailableCopies() + ". Saving...");
         }
 
         return book;
@@ -617,11 +629,11 @@ public class AdminSession {
         if(input.equalsIgnoreCase("N")) {
             String newName = verifyInputIsNotEmpty("Your member is currently called " + member.getName() + " . What would you like to change it to?: ", scanner, false);
             member.setName(newName);
-            System.out.println("Successful change. The member's name is now " + member.getName());
+            System.out.println("Name set to " + member.getName() + ". Saving...");
         }else if(input.equalsIgnoreCase("E")){
-            String newEmail = verifyInputIsNotEmpty("Your member's email is currently " + member.getEmail() + " . What would you like to change it to?: ", scanner, true);
+            String newEmail = verifyInputIsNotEmpty("Member's email is now set to " + member.getEmail() + " . What would you like to change it to?: ", scanner, true);
             member.setEmail(newEmail);
-            System.out.println("Successful change. The member's email is now " + member.getEmail());
+            System.out.println("Email is now set to " + member.getEmail() + ". Saving...");
         }
 
         return member;
@@ -639,13 +651,11 @@ public class AdminSession {
         }
 
         if(input.equalsIgnoreCase("N")) {
-            System.out.print("The admin is currently called " + admin.getName() + ". What would you like to change it to?: ");
-            String newName = scanner.nextLine();
+            String newName = verifyInputIsNotEmpty("The admin is currently called " + admin.getName() + ". What would you like to change it to?: ", scanner, false);
             admin.setName(newName);
-            System.out.println("Successful change. The admin's name is now " + admin.getName());
+            System.out.println("Name set to " + admin.getName() + ". Saving...");
         }else if(input.equalsIgnoreCase("U")){
-            System.out.print("The admin's username is currently " + admin.getUsername() + ". What would you like to change it to?: ");
-            String newUsername = scanner.nextLine();
+            String newUsername = verifyInputIsNotEmpty("The admin's username is currently " + admin.getUsername() + ". What would you like to change it to?: ", scanner, false);
             admin.setUsername(newUsername);
             System.out.println("Username set to " + admin.getUsername() + ". Saving...");
         }else if(input.equalsIgnoreCase("P")) {

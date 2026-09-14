@@ -222,7 +222,13 @@ public class BookDao {
             stmt.executeUpdate();
             System.out.println("Book was deleted successfully!");
 
-        } catch(SQLException | IOException e) {
+        } catch(SQLException e) {
+            if ("23503".equals(e.getSQLState())) {
+                System.out.println("This book cannot be deleted because it's still checked out.");
+            } else {
+                System.out.println("Failed to delete book: " + e.getMessage());
+            }
+        } catch(IOException e) {
             System.out.println("Failed to delete book: " + e.getMessage());
         } catch(Exception e) {
             e.printStackTrace();
