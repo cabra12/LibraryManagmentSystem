@@ -73,22 +73,22 @@ public class AdminSession {
                     boolean bookAdded = false;
 
                     while(!bookAdded) {
-                        String title = verifyInputIsNotEmpty("Type in the title of the book: ", scanner, false);
-                        String author = verifyInputIsNotEmpty("Type in the author of the book: ", scanner, false);
-                        String isbn = verifyInputIsNotEmpty("Type in the ISBN of the book: ", scanner, false);
+                        String title = InputValidator.verifyInputIsNotEmpty("Type in the title of the book: ", scanner, false);
+                        String author = InputValidator.verifyInputIsNotEmpty("Type in the author of the book: ", scanner, false);
+                        String isbn = InputValidator.verifyInputIsNotEmpty("Type in the ISBN of the book: ", scanner, false);
 
                         if(BookDao.getBookByIsbn(isbn) != null) {
                             System.out.println("That ISBN is already in the system. Please check your book and try again.");
                             continue;
                         }
 
-                        int totalCopies = verifyInputIsNum("Enter the numerical value of the total copies currently purchased of the book: ", scanner, true);
-                        int availableCopies = verifyInputIsNum("Enter the numerical value of the available copies of the book in the library: ", scanner, false);
+                        int totalCopies = InputValidator.verifyInputIsNum("Enter the numerical value of the total copies currently purchased of the book: ", scanner, true);
+                        int availableCopies = InputValidator.verifyInputIsNum("Enter the numerical value of the available copies of the book in the library: ", scanner, false);
      
                         while(availableCopies > totalCopies) {
                             System.out.println("Your available copies cannot be more than your total copies");
                             System.out.println("You entered you had " + availableCopies + " available copies and " + totalCopies + " total copies. Please fix it");
-                            availableCopies = verifyInputIsNum("Enter the numerical value of the available copies of the book in the library: ", scanner, false);
+                            availableCopies = InputValidator.verifyInputIsNum("Enter the numerical value of the available copies of the book in the library: ", scanner, false);
                         }
 
                         Book book = new Book(title, author, isbn, totalCopies, availableCopies);
@@ -148,10 +148,10 @@ public class AdminSession {
 
                 if(memberActionChoice.equalsIgnoreCase("Add")){
 
-                    String name = verifyInputIsNotEmpty("Type in the member's full name: ", scanner, false);
+                    String name = InputValidator.verifyInputIsNotEmpty("Type in the member's full name: ", scanner, false);
                     boolean memberAdded = false;
                     while(!memberAdded) {
-                        emailInput = verifyInputIsEmail(scanner);
+                        emailInput = InputValidator.verifyInputIsEmail(scanner);
 
                         if(MemberDao.getMemberByEmail(emailInput) != null) {
                             System.out.println("That email is already taken. Please choose a different one.");
@@ -183,6 +183,7 @@ public class AdminSession {
                         System.out.println("What member info would you like to update?");
                         System.out.println("To update name, press 'N'");
                         System.out.println("To update email, press 'E'");
+                        System.out.println("To reset password, press 'P'");
                         updateMember = changeMemberDetails(updateMember, scanner);
                         DaoResult updateMemberResult = MemberDao.updateMember(updateMember);
 
@@ -232,14 +233,14 @@ public class AdminSession {
                         boolean adminAdded = false;
 
                         while(!adminAdded) {
-                            String username = verifyInputIsNotEmpty("Enter admin's username: ", scanner, false);
+                            String username = InputValidator.verifyInputIsNotEmpty("Enter admin's username: ", scanner, false);
     
                             if(AdminDao.getAdminByUsername(username) != null) {
                                 System.out.println("That username is already taken. Please choose a different one.");
                                 continue;
                             } 
     
-                            String name = verifyInputIsNotEmpty("Enter admin's full name: ", scanner, false);
+                            String name = InputValidator.verifyInputIsNotEmpty("Enter admin's full name: ", scanner, false);
         
                             String[] result = gettingHashedTempPassword();
                             String hashedPassword = result[0];
@@ -326,66 +327,6 @@ public class AdminSession {
         return choice;
     }
 
-    public static int verifyInputIsNum(String request, Scanner scanner, boolean numCannotBeZero) {
-        boolean validInput = false;
-        int numVar = 0;
-
-        while(!validInput) {
-
-            validInput = false;
-            System.out.print(request);
-            if(scanner.hasNextInt()) {
-                numVar = scanner.nextInt();
-                scanner.nextLine();
-                if(numVar <= 0 && numCannotBeZero) {
-                    System.out.println("This value cannot be less than 1");
-                } else if(numVar < 0) {
-                    System.out.println("This value cannot be negative. Please enter a number equal to or greater than 0");
-                } else {
-                    validInput = true;
-                    break;
-                }
-            } else {
-                System.out.println("Please enter a number");
-                scanner.nextLine();
-            }
-        }
-
-        return numVar;
-    }
-
-    public static String verifyInputIsEmail(Scanner scanner) {
-        String emailInput = "";
-
-        while(!(emailInput.contains("@")) || emailInput.equals("")){
-            System.out.print("Type in the member's email: ");
-            emailInput = scanner.nextLine();
-            if(!(emailInput.contains("@")) || emailInput.equals("")) {
-                System.out.println("Please enter a valid email");
-            }
-        }
-
-        return emailInput;
-    }
-
-    public static String verifyInputIsNotEmpty(String request, Scanner scanner, boolean mustBeEmail) {
-        String input = "";
-
-        while(input.equals("") || (mustBeEmail && !input.contains("@"))) {
-            System.out.print(request);
-            input = scanner.nextLine();
-
-            if(input.equals("")){
-                System.out.println("This cannot be empty");
-            } else if(!input.contains("@") && mustBeEmail) {
-                System.out.println("Enter a valid email");
-            }
-
-        }
-        
-        return input;
-    }
-
     public static List<Book> searchForBooks(Scanner scanner) {
         System.out.println("We need to first search for the book you're looking for...");
         List<Book> searchBooksToUpdate = null;
@@ -427,7 +368,7 @@ public class AdminSession {
             }
 
             if(searchOption.equalsIgnoreCase("Email")) {
-                emailInput = verifyInputIsEmail(scanner);
+                emailInput = InputValidator.verifyInputIsEmail(scanner);
                 foundMemberByEmail= MemberDao.getMemberByEmail(emailInput);
 
                 if(foundMemberByEmail != null) {
@@ -568,15 +509,15 @@ public class AdminSession {
         }
 
         if(input.equalsIgnoreCase("T")) {
-            String newTitle = verifyInputIsNotEmpty("Your title of the selected book is currently " + book.getTitle() + ". What would you like to change the book title to?: ", scanner, false);
+            String newTitle = InputValidator.verifyInputIsNotEmpty("Your title of the selected book is currently " + book.getTitle() + ". What would you like to change the book title to?: ", scanner, false);
             book.setTitle(newTitle);
             System.out.println("Title is now set to " + book.getTitle() + ". Saving...");
         }else if(input.equalsIgnoreCase("A")){
-            String newAuthor = verifyInputIsNotEmpty("Your author of the selected book is currently " + book.getAuthor() + ". What would you like to change the book author to?: ", scanner, false);
+            String newAuthor = InputValidator.verifyInputIsNotEmpty("Your author of the selected book is currently " + book.getAuthor() + ". What would you like to change the book author to?: ", scanner, false);
             book.setAuthor(newAuthor);
             System.out.println("Author is now set to " + book.getAuthor() + ". Saving...");
         }else if(input.equalsIgnoreCase("I")){
-            String newISBN = verifyInputIsNotEmpty("Your book ISBN is currently "  + book.getIsbn() + ". What would you like to change the book ISBN to?: ", scanner, false);
+            String newISBN = InputValidator.verifyInputIsNotEmpty("Your book ISBN is currently "  + book.getIsbn() + ". What would you like to change the book ISBN to?: ", scanner, false);
             book.setIsbn(newISBN);
             System.out.println("ISBN is now set to " + book.getIsbn() + ". Saving...");
         }else if(input.equalsIgnoreCase("TC")){
@@ -584,7 +525,7 @@ public class AdminSession {
             while(newTotalCopyValue < book.getAvailableCopies()) {
                 newTotalCopyValue = -1;
 
-                newTotalCopyValue = verifyInputIsNum("Enter what you would like to change the book's total copies number to: ", scanner, true);
+                newTotalCopyValue = InputValidator.verifyInputIsNum("Enter what you would like to change the book's total copies number to: ", scanner, true);
                 if(newTotalCopyValue < book.getAvailableCopies()) {
                     System.out.println("Your total copies value is too low compared to the available copies in the database");
                     System.out.println("The total copies you entered was " + newTotalCopyValue + " and the available copies of the book in the database base is " + book.getAvailableCopies()); 
@@ -600,7 +541,7 @@ public class AdminSession {
             while(newAvailValue > book.getTotalCopies()) {
                 newAvailValue = -1;
 
-                newAvailValue = verifyInputIsNum("Enter what you would like to change the book's available copies number to: ", scanner, false);
+                newAvailValue = InputValidator.verifyInputIsNum("Enter what you would like to change the book's available copies number to: ", scanner, false);
                 if(newAvailValue > book.getTotalCopies()) {
                     System.out.println("Your available copies is too high when compared ");
                     System.out.println("The available copies you entered was " + newAvailValue + " and the total copies of the book in the database base is " + book.getTotalCopies()); 
@@ -617,23 +558,32 @@ public class AdminSession {
 
     public static Member changeMemberDetails(Member member, Scanner scanner) {
         String input = "";
-        while(!(input.equalsIgnoreCase("N")) && !(input.equalsIgnoreCase("E"))) {
+        while(!(input.equalsIgnoreCase("N")) && !(input.equalsIgnoreCase("E")) && !(input.equalsIgnoreCase("P"))) {
             System.out.print("Enter the symbol: ");
             input = scanner.nextLine();
 
-            if(!(input.equalsIgnoreCase("N")) && !(input.equalsIgnoreCase("E"))) {
+            if(!(input.equalsIgnoreCase("N")) && !(input.equalsIgnoreCase("E")) && !(input.equalsIgnoreCase("P"))) {
                 System.out.println("You did not input the correct value. Try again.");
             }
         }
 
         if(input.equalsIgnoreCase("N")) {
-            String newName = verifyInputIsNotEmpty("Your member is currently called " + member.getName() + " . What would you like to change it to?: ", scanner, false);
+            String newName = InputValidator.verifyInputIsNotEmpty("Your member is currently called " + member.getName() + " . What would you like to change it to?: ", scanner, false);
             member.setName(newName);
             System.out.println("Name set to " + member.getName() + ". Saving...");
         }else if(input.equalsIgnoreCase("E")){
-            String newEmail = verifyInputIsNotEmpty("Member's email is now set to " + member.getEmail() + " . What would you like to change it to?: ", scanner, true);
+            String newEmail = InputValidator.verifyInputIsNotEmpty("Member's email is now set to " + member.getEmail() + " . What would you like to change it to?: ", scanner, true);
             member.setEmail(newEmail);
             System.out.println("Email is now set to " + member.getEmail() + ". Saving...");
+        } else if(input.equalsIgnoreCase("P")) {
+            String[] result = gettingHashedTempPassword();
+            String hashedPassword = result[0];
+            String tempPassword = result[1];
+    
+            member.setPassword(hashedPassword);
+            member.setPasswordChangeStatus(true);
+            System.out.println("Password reset. Temporary password: " + tempPassword);
+            System.out.println("Give this to the member directly. They'll be required to change it on next login.");
         }
 
         return member;
@@ -651,11 +601,11 @@ public class AdminSession {
         }
 
         if(input.equalsIgnoreCase("N")) {
-            String newName = verifyInputIsNotEmpty("The admin is currently called " + admin.getName() + ". What would you like to change it to?: ", scanner, false);
+            String newName = InputValidator.verifyInputIsNotEmpty("The admin is currently called " + admin.getName() + ". What would you like to change it to?: ", scanner, false);
             admin.setName(newName);
             System.out.println("Name set to " + admin.getName() + ". Saving...");
         }else if(input.equalsIgnoreCase("U")){
-            String newUsername = verifyInputIsNotEmpty("The admin's username is currently " + admin.getUsername() + ". What would you like to change it to?: ", scanner, false);
+            String newUsername = InputValidator.verifyInputIsNotEmpty("The admin's username is currently " + admin.getUsername() + ". What would you like to change it to?: ", scanner, false);
             admin.setUsername(newUsername);
             System.out.println("Username set to " + admin.getUsername() + ". Saving...");
         }else if(input.equalsIgnoreCase("P")) {

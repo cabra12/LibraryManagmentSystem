@@ -51,7 +51,26 @@ public class AuthHelper {
 
         }
 
-
+        if(member.getPasswordChangeStatus() == true) {
+            boolean passwordSet = false;
+        
+            while (!passwordSet) {
+                System.out.println("It's time to change your temporary password to your own password");
+                String hashedPassword = makeNewPassword(scanner);
+                member.setPassword(hashedPassword);
+                member.setPasswordChangeStatus(false);
+                DaoResult changeResult = MemberDao.updateMember(member);
+        
+                switch (changeResult) {
+                    case SUCCESS -> {
+                        passwordSet = true;
+                        System.out.println("Your password has been changed successfully.");
+                    }
+                    case DUPLICATE_KEY -> System.out.println("Something went wrong — please try again.");
+                    case DATABASE_ERROR -> System.out.println("Something went wrong changing your password. Please try again.");
+                }
+            }
+        }
         System.out.println("Hello " + member.getName());
         return member;
     }
@@ -84,21 +103,30 @@ public class AuthHelper {
     }
 
     public static String makeNewPassword(Scanner scanner) {
-        String passwordInput = "";
+        String firstPasswordInput = "";
 
-        while(passwordInput.equals("") || passwordInput.length() < 10) {
+        while(firstPasswordInput.equals("") || firstPasswordInput.length() < 10) {
             System.out.print("Enter a strong password that's at least 10 characters: ");
-            passwordInput = scanner.nextLine();
+            firstPasswordInput = scanner.nextLine();
 
-            if((passwordInput.equals(""))) {
+            if((firstPasswordInput.equals(""))) {
                 System.out.println("Password cannot be empty. Try again.");
-            }else if(passwordInput.length() < 10) {
+            }else if(firstPasswordInput.length() < 10) {
                 System.out.println("Password must be at least 10 characters. Try again.");
             }
         }
 
-        String hashedPw = BCrypt.hashpw(passwordInput, BCrypt.gensalt(12));
+        String confirmPassword = "";
+        while(!(firstPasswordInput.equals(confirmPassword))) {
+            System.out.print("Confirm your new password: ");
+            confirmPassword = scanner.nextLine();
 
+            if(!(firstPasswordInput.equals(confirmPassword))) {
+                System.out.println("Passwords didn't match. Please try again.");
+            }
+        }
+
+        String hashedPw = BCrypt.hashpw(confirmPassword, BCrypt.gensalt(12));
         return hashedPw;
     }
 
@@ -143,6 +171,27 @@ public class AuthHelper {
                     break;
                 } else {
                     continue;
+                }
+            }
+        }
+
+        if(admin.getPasswordChangeStatus() == true) {
+            boolean passwordSet = false;
+        
+            while (!passwordSet) {
+                System.out.println("It's time to change your temporary password to your own password");
+                String hashedPassword = makeNewPassword(scanner);
+                admin.setPassword(hashedPassword);
+                admin.setPasswordChangeStatus(false);
+                DaoResult changeResult = AdminDao.updateAdmin(admin);
+        
+                switch (changeResult) {
+                    case SUCCESS -> {
+                        passwordSet = true;
+                        System.out.println("Your password has been changed successfully.");
+                    }
+                    case DUPLICATE_KEY -> System.out.println("Something went wrong — please try again.");
+                    case DATABASE_ERROR -> System.out.println("Something went wrong changing your password. Please try again.");
                 }
             }
         }

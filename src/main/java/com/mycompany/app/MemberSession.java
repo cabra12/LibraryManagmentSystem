@@ -4,6 +4,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Scanner;
 
+import org.mindrot.jbcrypt.BCrypt;
+
 public class MemberSession {
     public static boolean runMemberSession(Scanner scanner, Member member) {
         boolean continueLoop = true;
@@ -12,21 +14,20 @@ public class MemberSession {
             String exitChoice = "";
             int memActionChoice = 0;
 
-            
             System.out.println("\nWhat would you like to do?");
             System.out.println("1. Search books (by title/author)");
             System.out.println("2. Check out a book");
             System.out.println("3. Return a book");
             System.out.println("4. View my borrowed books");
             System.out.println("5. Change password");
-            System.out.println("5. Exit");
+            System.out.println("6. Exit");
 
-            while(memActionChoice < 1 || memActionChoice > 5) {
-                System.out.print("Enter your choice (1, 2, 3, 4, or 5): ");
+            while(memActionChoice < 1 || memActionChoice > 6) {
+                System.out.print("Enter your choice (1, 2, 3, 4, 5, or 6): ");
                 if(scanner.hasNextInt()) {
                     memActionChoice = scanner.nextInt();
                     scanner.nextLine();
-                    if(memActionChoice < 1 || memActionChoice > 5) {
+                    if(memActionChoice < 1 || memActionChoice > 6) {
                         System.out.println("Your number was too high or too low. Try again.");
                     }
                 }else {
@@ -36,7 +37,7 @@ public class MemberSession {
                 
             }
             
-            if(memActionChoice == 5) {
+            if(memActionChoice == 6) {
                 System.out.println("Are you sure you want to exit? Y/N: ");
                 while(!(exitChoice.equalsIgnoreCase("Y")) && !(exitChoice.equalsIgnoreCase("N"))) {
                     exitChoice = scanner.nextLine();
@@ -140,6 +141,33 @@ public class MemberSession {
 
             case 4:
                 getAllBorrowedBooksByMember(member);
+                break;
+            case 5:
+                boolean passwordChanged = false;
+
+                while(!passwordChanged) {
+                    String newPassword = InputValidator.verifyInputIsNotEmpty("Enter your new password: ", scanner, false);
+                    String confirmPassword = InputValidator.verifyInputIsNotEmpty("Confirm your new password: ", scanner, false);
+
+                    if (!newPassword.equals(confirmPassword)) {
+                        System.out.println("Passwords didn't match. Please try again.");
+                        continue;
+                    }
+                    String hashedPassword = BCrypt.hashpw(newPassword, BCrypt.gensalt());
+                    member.setPassword(hashedPassword);
+                    member.setPasswordChangeStatus(false);
+
+                    DaoResult changeResult = MemberDao.updateMember(member);
+
+                    switch (changeResult) {
+                        case SUCCESS -> {
+                            passwordChanged = true;
+                            System.out.println("Your password has been changed successfully.");
+                        }
+                        case DUPLICATE_KEY -> System.out.println("Something went wrong — please try again.");
+                        case DATABASE_ERROR -> System.out.println("Something went wrong changing your password. Please try again.");
+                    }
+                }
                 break;
             default:
                 System.out.println("Invalid option");
