@@ -8,11 +8,24 @@ public class AuthHelper {
     public static Member registerNewMember(Scanner scanner) {
 
         String name = retrieveName(scanner);
-        String email = getEmailInput(scanner);
-        String password = makeNewPassword(scanner);
 
-        Member newMember = new Member(name, email, password, false);
-        MemberDao.addMember(newMember);
+        Member newMember = null;
+        boolean memberAdded = false;
+
+        while(!memberAdded) {
+            String email = getEmailInput(scanner);
+            String password = makeNewPassword(scanner);
+    
+            newMember = new Member(name, email, password, false);
+            DaoResult addResult = MemberDao.addMember(newMember);
+
+            switch(addResult) {
+                case SUCCESS -> memberAdded = true;
+                case DUPLICATE_KEY -> System.out.println("That email is already taken. Please choose a different one.");
+                case DATABASE_ERROR -> System.out.println("Something went wrong adding you as a member. Please try again.");
+            }
+        }
+
         return newMember;
     }
 

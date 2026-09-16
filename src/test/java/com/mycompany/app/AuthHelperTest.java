@@ -1,15 +1,287 @@
 package com.mycompany.app;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.times;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.mindrot.jbcrypt.BCrypt;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 
 import java.util.Scanner;
 
 public class AuthHelperTest {
+
+    @Nested
+    @DisplayName("registers a new member and saves it, registerNewMember tests")
+    class RegisterNewMemberTests {
+
+        @Test
+        @DisplayName("happy path for registerNewMember")
+        public void registerNewMember_success() {
+            Scanner fakeInput = new Scanner("Hanna Roberts\nhanna@gmail.com\nerr56!pass\nerr56!pass\n");
     
+            try (MockedStatic<MemberDao> mocked = Mockito.mockStatic(MemberDao.class)) {
+                mocked.when(() -> MemberDao.addMember(any())).thenReturn(DaoResult.SUCCESS);
+                //when() is for static methods, it tells Mockito, whenthis specific call happens, do this instead of the actual thing
+                //lambda expression is how Mockito captures which staticcall to intercept
+                //any() says "whatever Member object gets constructed insie registerNewMember" -- don't know what the method exactly produces so you use this
+                Member result = AuthHelper.registerNewMember(fakeInput);
+                mocked.verify(() -> MemberDao.addMember(any()));
+
+                assertEquals("Hanna Roberts", result.getName());
+                assertEquals("hanna@gmail.com", result.getEmail());
+            }
+        }    
+
+        @Test
+        @DisplayName("retries with a new email after a duplicate key, then succeeds")
+        public void registerNewMember_duplicateEmailThenSuccess() {
+            Scanner fakeInput = new Scanner(
+                "George Wallace\n" +      
+                "taken@gmail.com\n" +        
+                "pasttheCorner23\npasttheCorner23\n" + 
+                "george@gmail.com\n" +    
+                "pasttheCorner23\npasttheCorner23\n"  
+            );
+
+            try (MockedStatic<MemberDao> mocked = Mockito.mockStatic(MemberDao.class)) {
+                mocked.when(() -> MemberDao.addMember(any()))
+                    .thenReturn(DaoResult.DUPLICATE_KEY, DaoResult.SUCCESS);
+                //first call to addMember returns DUPLICATE_KEY, second call returns SUCCESS
+                //DUPLICATE_KEY makes the loop run again
+                //Scaner supplies the second round
+                Member result = AuthHelper.registerNewMember(fakeInput);
+
+                assertEquals("george@gmail.com", result.getEmail());
+                mocked.verify(() -> MemberDao.addMember(any()), times(2));
+                //times(2) confirms addMember was called twice
+            }
+        }
+    }
+
+    @Nested
+    @DisplayName("logInExistingMember tests")
+    class LogInExistingMemberTests {
+    
+        @Test
+        @DisplayName("happy path: valid email, correct password, no password change needed")
+        public void logInExistingMember_happyPath() {
+            String rawPassword = "correctPass123";
+            String hashedPassword = BCrypt.hashpw(rawPassword, BCrypt.gensalt(12));
+            Member existingMember = new Member(1, "Jane Doe", "jane@gmail.com", hashedPassword, false);
+    
+            Scanner fakeInput = new Scanner("jane@gmail.com\n" + rawPassword + "\n");
+    
+            try (MockedStatic<MemberDao> mocked = Mockito.mockStatic(MemberDao.class)) {
+                mocked.when(() -> MemberDao.getMemberByEmail("jane@gmail.com")).thenReturn(existingMember);
+    
+                Member result = AuthHelper.logInExistingMember(fakeInput);
+    
+                assertEquals(existingMember, result);
+                mocked.verify(() -> MemberDao.getMemberByEmail("jane@gmail.com"), times(1));
+                mocked.verify(() -> MemberDao.updateMember(any()), Mockito.never());
+            }
+        }
+    
+        @Test
+        @DisplayName("wrong password once, then correct password")
+        public void logInExistingMember_wrongPasswordThenCorrect() {
+            String rawPassword = "realPassword1";
+            String hashedPassword = BCrypt.hashpw(rawPassword, BCrypt.gensalt(12));
+            Member existingMember = new Member(2, "Tom Baker", "tom@gmail.com", hashedPassword, false);
+    
+            Scanner fakeInput = new Scanner(
+                "tom@gmail.com\n" +
+                "wrongPassword\n" +
+                "tom@gmail.com\n" +
+                rawPassword + "\n"
+            );
+    
+            try (MockedStatic<MemberDao> mocked = Mockito.mockStatic(MemberDao.class)) {
+                mocked.when(() -> MemberDao.getMemberByEmail("tom@gmail.com")).thenReturn(existingMember);
+    
+                Member result = AuthHelper.logInExistingMember(fakeInput);
+    
+                assertEquals(existingMember, result);
+                mocked.verify(() -> MemberDao.getMemberByEmail("tom@gmail.com"), times(2));
+            }
+        }
+    
+        @Test
+        @DisplayName("email not found, user chooses to try again, then valid email/password")
+        public void logInExistingMember_emailNotFoundThenTryAgain() {
+            String rawPassword = "goodPassword1";
+            String hashedPassword = BCrypt.hashpw(rawPassword, BCrypt.gensalt(12));
+            Member existingMember = new Member(3, "Alice Kim", "alice@gmail.com", hashedPassword, false);
+    
+            Scanner fakeInput = new Scanner(
+                "missing@gmail.com\n" +
+                "T\n" +
+                "alice@gmail.com\n" +
+                rawPassword + "\n"
+            );
+    
+            try (MockedStatic<MemberDao> mocked = Mockito.mockStatic(MemberDao.class)) {
+                mocked.when(() -> MemberDao.getMemberByEmail("missing@gmail.com")).thenReturn(null);
+                mocked.when(() -> MemberDao.getMemberByEmail("alice@gmail.com")).thenReturn(existingMember);
+    
+                Member result = AuthHelper.logInExistingMember(fakeInput);
+    
+                assertEquals(existingMember, result);
+                mocked.verify(() -> MemberDao.getMemberByEmail("missing@gmail.com"));
+                mocked.verify(() -> MemberDao.getMemberByEmail("alice@gmail.com"));
+            }
+        }
+    
+        @Test
+        @DisplayName("email not found, user chooses to register, delegates to registerNewMember")
+        public void logInExistingMember_emailNotFoundThenRegister() {
+            Scanner fakeInput = new Scanner(
+                "missing@gmail.com\n" +
+                "R\n" +
+                "New Person\n" +
+                "newperson@gmail.com\n" +
+                "brandNewPass1\n" +
+                "brandNewPass1\n"
+            );
+    
+            try (MockedStatic<MemberDao> mocked = Mockito.mockStatic(MemberDao.class)) {
+                mocked.when(() -> MemberDao.getMemberByEmail("missing@gmail.com")).thenReturn(null);
+                mocked.when(() -> MemberDao.addMember(any())).thenReturn(DaoResult.SUCCESS);
+    
+                Member result = AuthHelper.logInExistingMember(fakeInput);
+    
+                assertEquals("New Person", result.getName());
+                assertEquals("newperson@gmail.com", result.getEmail());
+                assertFalse(result.getPasswordChangeStatus());
+                mocked.verify(() -> MemberDao.getMemberByEmail("missing@gmail.com"));
+                mocked.verify(() -> MemberDao.addMember(any()));
+            }
+        }
+    
+        @Test
+        @DisplayName("password change required, triggers second loop and updates member")
+        public void logInExistingMember_passwordChangeRequired() {
+            String tempPassword = "tempPass123";
+            String hashedTempPassword = BCrypt.hashpw(tempPassword, BCrypt.gensalt(12));
+            Member existingMember = new Member(4, "Carl White", "carl@gmail.com", hashedTempPassword, true);
+    
+            String newPassword = "brandNewSecurePass1";
+    
+            Scanner fakeInput = new Scanner(
+                "carl@gmail.com\n" +
+                tempPassword + "\n" +
+                newPassword + "\n" +
+                newPassword + "\n"
+            );
+    
+            try (MockedStatic<MemberDao> mocked = Mockito.mockStatic(MemberDao.class)) {
+                mocked.when(() -> MemberDao.getMemberByEmail("carl@gmail.com")).thenReturn(existingMember);
+                mocked.when(() -> MemberDao.updateMember(any())).thenReturn(DaoResult.SUCCESS);
+    
+                Member result = AuthHelper.logInExistingMember(fakeInput);
+    
+                assertFalse(result.getPasswordChangeStatus());
+                assertTrue(BCrypt.checkpw(newPassword, result.getPassword()));
+                mocked.verify(() -> MemberDao.updateMember(existingMember));
+            }
+        }
+
+        @Test
+        @DisplayName("multiple consecutive wrong passwords, then correct password")
+        public void logInExistingMember_multipleWrongPasswordsThenCorrect() {
+            String rawPassword = "finallyCorrect1";
+            String hashedPassword = BCrypt.hashpw(rawPassword, BCrypt.gensalt(12));
+            Member existingMember = new Member(5, "Nina Ortiz", "nina@gmail.com", hashedPassword, false);
+        
+            Scanner fakeInput = new Scanner(
+                "nina@gmail.com\n" +
+                "wrongOne\n" +
+                "nina@gmail.com\n" +
+                "wrongTwo\n" +
+                "nina@gmail.com\n" +
+                rawPassword + "\n"
+            );
+        
+            try (MockedStatic<MemberDao> mocked = Mockito.mockStatic(MemberDao.class)) {
+                mocked.when(() -> MemberDao.getMemberByEmail("nina@gmail.com")).thenReturn(existingMember);
+        
+                Member result = AuthHelper.logInExistingMember(fakeInput);
+        
+                assertEquals(existingMember, result);
+                mocked.verify(() -> MemberDao.getMemberByEmail("nina@gmail.com"), times(3));
+            }
+        }
+        
+        @Test
+        @DisplayName("password change needed: DATABASE_ERROR on first update attempt, then succeeds")
+        public void logInExistingMember_passwordChangeDatabaseErrorThenSuccess() {
+            String tempPassword = "tempPass456";
+            String hashedTempPassword = BCrypt.hashpw(tempPassword, BCrypt.gensalt(12));
+            Member existingMember = new Member(6, "Derek Hall", "derek@gmail.com", hashedTempPassword, true);
+        
+            String newPassword = "brandNewSecurePass2";
+        
+            Scanner fakeInput = new Scanner(
+                "derek@gmail.com\n" +
+                tempPassword + "\n" +
+                newPassword + "\n" +
+                newPassword + "\n" +
+                newPassword + "\n" +
+                newPassword + "\n"
+            );
+            //first call is a Database error, so password change doesn't happen, which is why new Password needs to be entered again (that's why newPassword is inputted four times)
+            //on second call, makeNewPassword is called again, reprompting from scratch
+        
+            try (MockedStatic<MemberDao> mocked = Mockito.mockStatic(MemberDao.class)) {
+                mocked.when(() -> MemberDao.getMemberByEmail("derek@gmail.com")).thenReturn(existingMember);
+                mocked.when(() -> MemberDao.updateMember(any()))
+                    .thenReturn(DaoResult.DATABASE_ERROR, DaoResult.SUCCESS);
+        
+                Member result = AuthHelper.logInExistingMember(fakeInput);
+        
+                assertFalse(result.getPasswordChangeStatus());
+                assertTrue(BCrypt.checkpw(newPassword, result.getPassword()));
+                mocked.verify(() -> MemberDao.updateMember(existingMember), times(2));
+            }
+        }
+        
+        @Test
+        @DisplayName("password change needed: DUPLICATE_KEY on first update attempt, then succeeds")
+        public void logInExistingMember_passwordChangeDuplicateKeyThenSuccess() {
+            String tempPassword = "tempPass789";
+            String hashedTempPassword = BCrypt.hashpw(tempPassword, BCrypt.gensalt(12));
+            Member existingMember = new Member(7, "Priya Nair", "priya@gmail.com", hashedTempPassword, true);
+        
+            String newPassword = "brandNewSecurePass3";
+        
+            Scanner fakeInput = new Scanner(
+                "priya@gmail.com\n" +
+                tempPassword + "\n" +
+                newPassword + "\n" +
+                newPassword + "\n" +
+                newPassword + "\n" +
+                newPassword + "\n"
+            );
+        
+            try (MockedStatic<MemberDao> mocked = Mockito.mockStatic(MemberDao.class)) {
+                mocked.when(() -> MemberDao.getMemberByEmail("priya@gmail.com")).thenReturn(existingMember);
+                mocked.when(() -> MemberDao.updateMember(any()))
+                    .thenReturn(DaoResult.DUPLICATE_KEY, DaoResult.SUCCESS);
+        
+                Member result = AuthHelper.logInExistingMember(fakeInput);
+        
+                assertFalse(result.getPasswordChangeStatus());
+                assertTrue(BCrypt.checkpw(newPassword, result.getPassword()));
+                mocked.verify(() -> MemberDao.updateMember(existingMember), times(2));
+            }
+        }
+    }
+
     @Nested
     @DisplayName("retrieveName Tests")
     class RetrieveNameTests {
@@ -157,6 +429,197 @@ public class AuthHelperTest {
             Scanner fakeInput = new Scanner("\nredhot&dangerous\n");
             String result = AuthHelper.retrievePassword(fakeInput);
             assertEquals("redhot&dangerous", result);
+        }
+    }
+
+    @Nested
+    @DisplayName("logInAsAdmin tests")
+    class LogInAsAdminTests {
+    
+        @Test
+        @DisplayName("happy path: valid username, correct password, no password change needed")
+        public void logInAsAdmin_happyPath() {
+            String rawPassword = "adminPass123";
+            String hashedPassword = BCrypt.hashpw(rawPassword, BCrypt.gensalt(12));
+            Admin existingAdmin = new Admin(1, "jsmith", hashedPassword, "Jane Smith", "admin", false);
+    
+            Scanner fakeInput = new Scanner("jsmith\n" + rawPassword + "\n");
+    
+            try (MockedStatic<AdminDao> mocked = Mockito.mockStatic(AdminDao.class)) {
+                mocked.when(() -> AdminDao.logInWithUsername("jsmith")).thenReturn(existingAdmin);
+    
+                Admin result = AuthHelper.logInAsAdmin(fakeInput);
+    
+                assertEquals(existingAdmin, result);
+                mocked.verify(() -> AdminDao.logInWithUsername("jsmith"), times(1));
+                mocked.verify(() -> AdminDao.updateAdmin(any()), Mockito.never());
+                //Mockito.never() makes sure the updateAdmin method was not called
+            }
+        }
+    
+        @Test
+        @DisplayName("wrong password once, then correct password")
+        public void logInAsAdmin_wrongPasswordThenCorrect() {
+            String rawPassword = "realAdminPass1";
+            String hashedPassword = BCrypt.hashpw(rawPassword, BCrypt.gensalt(12));
+            Admin existingAdmin = new Admin(2, "tbaker", hashedPassword, "Tom Baker", "admin", false);
+    
+            Scanner fakeInput = new Scanner(
+                "tbaker\n" +
+                "wrongPassword\n" +
+                "tbaker\n" +
+                rawPassword + "\n"
+            );
+    
+            try (MockedStatic<AdminDao> mocked = Mockito.mockStatic(AdminDao.class)) {
+                mocked.when(() -> AdminDao.logInWithUsername("tbaker")).thenReturn(existingAdmin);
+    
+                Admin result = AuthHelper.logInAsAdmin(fakeInput);
+    
+                assertEquals(existingAdmin, result);
+                mocked.verify(() -> AdminDao.logInWithUsername("tbaker"), times(2));
+            }
+        }
+    
+        @Test
+        @DisplayName("username not found once, then a valid username/password")
+        public void logInAsAdmin_usernameNotFoundThenValid() {
+            String rawPassword = "goodAdminPass1";
+            String hashedPassword = BCrypt.hashpw(rawPassword, BCrypt.gensalt(12));
+            Admin existingAdmin = new Admin(3, "akim", hashedPassword, "Alice Kim", "admin", false);
+    
+            Scanner fakeInput = new Scanner(
+                "missingUser\n" +
+                "akim\n" +
+                rawPassword + "\n"
+            );
+    
+            try (MockedStatic<AdminDao> mocked = Mockito.mockStatic(AdminDao.class)) {
+                mocked.when(() -> AdminDao.logInWithUsername("missingUser")).thenReturn(null);
+                mocked.when(() -> AdminDao.logInWithUsername("akim")).thenReturn(existingAdmin);
+    
+                Admin result = AuthHelper.logInAsAdmin(fakeInput);
+    
+                assertEquals(existingAdmin, result);
+                mocked.verify(() -> AdminDao.logInWithUsername("missingUser"));
+                mocked.verify(() -> AdminDao.logInWithUsername("akim"));
+            }
+        }
+    
+        @Test
+        @DisplayName("password change required, triggers second loop and updates admin")
+        public void logInAsAdmin_passwordChangeRequired() {
+            String tempPassword = "tempAdminPass1";
+            String hashedTempPassword = BCrypt.hashpw(tempPassword, BCrypt.gensalt(12));
+            Admin existingAdmin = new Admin(4, "cwhite", hashedTempPassword, "Carl White", "admin", true);
+    
+            String newPassword = "brandNewSecureAdminPass1";
+    
+            Scanner fakeInput = new Scanner(
+                "cwhite\n" +
+                tempPassword + "\n" +
+                newPassword + "\n" +
+                newPassword + "\n"
+            );
+    
+            try (MockedStatic<AdminDao> mocked = Mockito.mockStatic(AdminDao.class)) {
+                mocked.when(() -> AdminDao.logInWithUsername("cwhite")).thenReturn(existingAdmin);
+                mocked.when(() -> AdminDao.updateAdmin(any())).thenReturn(DaoResult.SUCCESS);
+    
+                Admin result = AuthHelper.logInAsAdmin(fakeInput);
+    
+                assertFalse(result.getPasswordChangeStatus());
+                assertTrue(BCrypt.checkpw(newPassword, result.getPassword()));
+                mocked.verify(() -> AdminDao.updateAdmin(existingAdmin));
+            }
+        }
+
+        @Test
+        @DisplayName("multiple consecutive wrong passwords, then correct password")
+        public void logInAsAdmin_multipleWrongPasswordsThenCorrect() {
+            String rawPassword = "finallyCorrectAdmin1";
+            String hashedPassword = BCrypt.hashpw(rawPassword, BCrypt.gensalt(12));
+            Admin existingAdmin = new Admin(5, "nortiz", hashedPassword, "Nina Ortiz", "admin", false);
+        
+            Scanner fakeInput = new Scanner(
+                "nortiz\n" +
+                "wrongOne\n" +
+                "nortiz\n" +
+                "wrongTwo\n" +
+                "nortiz\n" +
+                rawPassword + "\n"
+            );
+        
+            try (MockedStatic<AdminDao> mocked = Mockito.mockStatic(AdminDao.class)) {
+                mocked.when(() -> AdminDao.logInWithUsername("nortiz")).thenReturn(existingAdmin);
+        
+                Admin result = AuthHelper.logInAsAdmin(fakeInput);
+        
+                assertEquals(existingAdmin, result);
+                mocked.verify(() -> AdminDao.logInWithUsername("nortiz"), times(3));
+            }
+        }
+        
+        @Test
+        @DisplayName("password change needed: DATABASE_ERROR on first update attempt, then succeeds")
+        public void logInAsAdmin_passwordChangeDatabaseErrorThenSuccess() {
+            String tempPassword = "tempAdminPass456";
+            String hashedTempPassword = BCrypt.hashpw(tempPassword, BCrypt.gensalt(12));
+            Admin existingAdmin = new Admin(6, "dhall", hashedTempPassword, "Derek Hall", "admin", true);
+        
+            String newPassword = "brandNewSecureAdminPass2";
+        
+            Scanner fakeInput = new Scanner(
+                "dhall\n" +
+                tempPassword + "\n" +
+                newPassword + "\n" +
+                newPassword + "\n" +
+                newPassword + "\n" +
+                newPassword + "\n"
+            );
+        
+            try (MockedStatic<AdminDao> mocked = Mockito.mockStatic(AdminDao.class)) {
+                mocked.when(() -> AdminDao.logInWithUsername("dhall")).thenReturn(existingAdmin);
+                mocked.when(() -> AdminDao.updateAdmin(any()))
+                    .thenReturn(DaoResult.DATABASE_ERROR, DaoResult.SUCCESS);
+        
+                Admin result = AuthHelper.logInAsAdmin(fakeInput);
+        
+                assertFalse(result.getPasswordChangeStatus());
+                assertTrue(BCrypt.checkpw(newPassword, result.getPassword()));
+                mocked.verify(() -> AdminDao.updateAdmin(existingAdmin), times(2));
+            }
+        }
+        
+        @Test
+        @DisplayName("password change needed: DUPLICATE_KEY on first update attempt, then succeeds")
+        public void logInAsAdmin_passwordChangeDuplicateKeyThenSuccess() {
+            String tempPassword = "tempAdminPass789";
+            String hashedTempPassword = BCrypt.hashpw(tempPassword, BCrypt.gensalt(12));
+            Admin existingAdmin = new Admin(7, "pnair", hashedTempPassword, "Priya Nair", "admin", true);
+        
+            String newPassword = "brandNewSecureAdminPass3";
+        
+            Scanner fakeInput = new Scanner(
+                "pnair\n" +
+                tempPassword + "\n" +
+                newPassword + "\n" +
+                newPassword + "\n" +
+                newPassword + "\n" +
+                newPassword + "\n"
+            );
+        
+            try (MockedStatic<AdminDao> mocked = Mockito.mockStatic(AdminDao.class)) {
+                mocked.when(() -> AdminDao.logInWithUsername("pnair")).thenReturn(existingAdmin);
+                mocked.when(() -> AdminDao.updateAdmin(any()))
+                    .thenReturn(DaoResult.DUPLICATE_KEY, DaoResult.SUCCESS);
+        
+                Admin result = AuthHelper.logInAsAdmin(fakeInput);
+        
+                assertFalse(result.getPasswordChangeStatus());
+                assertTrue(BCrypt.checkpw(newPassword, result.getPassword()));
+                mocked.verify(() -> AdminDao.updateAdmin(existingAdmin), times(2));
+            }
         }
     }
 
