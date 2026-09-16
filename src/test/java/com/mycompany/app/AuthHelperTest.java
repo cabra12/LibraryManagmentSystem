@@ -318,7 +318,7 @@ public class AuthHelperTest {
         @Test
         @DisplayName("invalid email input with no @ symbol and then valid email given")
         public void getEmailInput_noAtSymbol() {
-            Scanner fakeInput = new Scanner("sara\nsara@gmail.com");
+            Scanner fakeInput = new Scanner("sara\nsara@gmail.com\n");
             String result = AuthHelper.getEmailInput(fakeInput);
             assertEquals("sara@gmail.com", result);
         }
@@ -326,7 +326,7 @@ public class AuthHelperTest {
         @Test
         @DisplayName("invalid empty email input and then valid email given")
         public void getEmailInput_emptyInput() {
-            Scanner fakeInput = new Scanner("\nkatherine@gmail.com");
+            Scanner fakeInput = new Scanner("\nkatherine@gmail.com\n");
             String result = AuthHelper.getEmailInput(fakeInput);
             assertEquals("katherine@gmail.com", result);
         }
@@ -334,7 +334,7 @@ public class AuthHelperTest {
         @Test
         @DisplayName("invalid email with no @ symbol, invalid empty email input,then valid email given")
         public void getEmailInput_emptyAndNoAtSymbolInput() {
-            Scanner fakeInput = new Scanner("rachel\n\nrachel@gmail.com");
+            Scanner fakeInput = new Scanner("rachel\n\nrachel@gmail.com\n");
             String result = AuthHelper.getEmailInput(fakeInput);
             assertEquals("rachel@gmail.com", result);
         }
@@ -364,7 +364,7 @@ public class AuthHelperTest {
         @Test 
         @DisplayName("accepts an empty password, then takes a valid password")
         public void makeNewPassword_emptyPassword() {
-            Scanner fakeInput = new Scanner("\nsave_the_sharks\nsave_the_sharks");
+            Scanner fakeInput = new Scanner("\nsave_the_sharks\nsave_the_sharks\n");
             String result = AuthHelper.makeNewPassword(fakeInput);
             assertTrue(BCrypt.checkpw("save_the_sharks", result));
         }
@@ -381,7 +381,7 @@ public class AuthHelperTest {
         @Test
         @DisplayName("takes in multiple mismatchec passwords, then finally accepts a matched password")
         public void makeNewPassword_multipleMismatchedPassword() {
-            Scanner fakeInput = new Scanner("greenflowers4me\ngreen\ngreenflower\ngreenflowers4\ngreenflowers4me");
+            Scanner fakeInput = new Scanner("greenflowers4me\ngreen\ngreenflower\ngreenflowers4\ngreenflowers4me\n");
             String result = AuthHelper.makeNewPassword(fakeInput);
             assertTrue(BCrypt.checkpw("greenflowers4me", result));
         }

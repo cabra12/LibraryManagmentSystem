@@ -146,8 +146,8 @@ public class MemberSession {
                 boolean passwordChanged = false;
 
                 while(!passwordChanged) {
-                    String newPassword = InputValidator.verifyInputIsNotEmpty("Enter your new password: ", scanner, false);
-                    String confirmPassword = InputValidator.verifyInputIsNotEmpty("Confirm your new password: ", scanner, false);
+                    String newPassword = InputValidator.verifyInputIsNotEmpty("Enter your new password: ", scanner);
+                    String confirmPassword = InputValidator.verifyInputIsNotEmpty("Confirm your new password: ", scanner);
 
                     if (!newPassword.equals(confirmPassword)) {
                         System.out.println("Passwords didn't match. Please try again.");
