@@ -61,6 +61,27 @@ public class AuthHelperTest {
                 //times(2) confirms addMember was called twice
             }
         }
+
+        @Test
+        @DisplayName("retries after a database error, then succeeds")
+        public void registerNewMember_databaseErrorThenSuccess() {
+            Scanner fakeInput = new Scanner(
+                "Marcus Lee\n" +
+                "marcus@gmail.com\n" +
+                "safepass123\nsafepass123\n" +
+                "marcus@gmail.com\n" +
+                "safepass123\nsafepass123\n"
+            );
+        
+            try (MockedStatic<MemberDao> mocked = Mockito.mockStatic(MemberDao.class)) {
+                mocked.when(() -> MemberDao.addMember(any()))
+                    .thenReturn(DaoResult.DATABASE_ERROR, DaoResult.SUCCESS);
+                Member result = AuthHelper.registerNewMember(fakeInput);
+        
+                assertEquals("marcus@gmail.com", result.getEmail());
+                mocked.verify(() -> MemberDao.addMember(any()), times(2));
+            }
+        }
     }
 
     @Nested
