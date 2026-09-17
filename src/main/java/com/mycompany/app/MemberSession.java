@@ -47,6 +47,8 @@ public class MemberSession {
                         System.out.println("Signing out...");
                         System.out.println("Goodbye!");
                         continueLoop = false;
+                    } else if(exitChoice.equalsIgnoreCase("N")) {
+                        System.out.println("Okay, continuing your session...");
                     }
                 }
                 
@@ -108,6 +110,10 @@ public class MemberSession {
                 int borrowedBookId = 0;
 
                 List<BorrowedBook> borrowedBooks = getAllBorrowedBooksByMember(member);
+
+                if(borrowedBooks.isEmpty()) {
+                    break;
+                }
 
                 while(!validInput) {
                     borrowedBookId = 0;
@@ -230,12 +236,17 @@ public class MemberSession {
     public static List<BorrowedBook> getAllBorrowedBooksByMember(Member member) {
         System.out.println("Here are all the books you borrowed:");
         List<BorrowedBook> borrowedBooks = BorrowedBookDao.getBorrowedBooksByMember(member.getId());
-         
+    
+        if(borrowedBooks.isEmpty()) {
+            System.out.println("You have no borrowed books.");
+            return borrowedBooks;
+        }
+    
         for(BorrowedBook borrowedBook: borrowedBooks) {
             Book book = BookDao.getBookById(borrowedBook.getBookId());
             System.out.println("ID: " + borrowedBook.getId() + " | Title: " + book.getTitle() + " | Author: " + book.getAuthor() + " | Due Date: " + borrowedBook.getDueDate());
         }
-
+    
         return borrowedBooks;
     }
 
