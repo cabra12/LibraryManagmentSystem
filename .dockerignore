@@ -1,0 +1,9 @@
+# Never copy local credentials into the image
+src/main/resources/db.properties
+
+# Build output and tooling
+target
+.git
+.vscode
+.idea
+*.iml

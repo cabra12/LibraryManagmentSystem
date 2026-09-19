@@ -1,0 +1,36 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      # Demo values only. Not for real deployments.
+      POSTGRES_DB: librarydb
+      POSTGRES_USER: library
+      POSTGRES_PASSWORD: library_pw
+    volumes:
+      # Data survives restarts; `docker compose down -v` wipes it
+      - pgdata:/var/lib/postgresql/data
+      # Scripts in this folder run once, in name order, when the database is first created
+      - ./src/test/resources/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./docker/initdb/02-seed-admin.sql:/docker-entrypoint-initdb.d/02-seed-admin.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U library -d librarydb"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  app:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy   # wait until Postgres is ready to accept connections
+    environment:
+      # "db" is the service name above; Docker's network resolves it to the database container
+      DB_URL: jdbc:postgresql://db:5432/librarydb
+      DB_USER: library
+      DB_PASSWORD: library_pw
+    # The app reads from the keyboard, so it needs an interactive terminal
+    stdin_open: true
+    tty: true
+
+volumes:
+  pgdata:
