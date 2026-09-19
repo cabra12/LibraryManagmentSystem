@@ -36,7 +36,7 @@ public class AdminDao {
     }
 
     public static Admin getAdminById(int adminId) {
-        String sql = "SELECT id, name, password, name, role, must_change_password FROM admins WHERE id = ?";
+        String sql = "SELECT id, username, password, name, role, must_change_password FROM admins WHERE id = ?";
         Admin admin = null;
 
         //Prepared Statement because it has parameters

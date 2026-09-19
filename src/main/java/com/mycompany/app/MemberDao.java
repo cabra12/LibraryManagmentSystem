@@ -154,7 +154,7 @@ public class MemberDao {
     }
 
     public static DaoResult updateMember(Member member) {
-        String sql = "UPDATE members SET name = ?, email = ? WHERE id = ?";
+        String sql = "UPDATE members SET name = ?, email = ?, password = COALESCE(?, password), must_change_password = ? WHERE id = ?";
 
         try(
             Connection conn = DBConnection.getConnection(); 
@@ -162,7 +162,9 @@ public class MemberDao {
         {
             stmt.setString(1, member.getName());
             stmt.setString(2, member.getEmail());
-            stmt.setInt(3, member.getId());
+            stmt.setString(3, member.getPassword());  
+            stmt.setBoolean(4, member.getPasswordChangeStatus());
+            stmt.setInt(5, member.getId());
 
             stmt.executeUpdate();
             System.out.println("Member information updated successfully!");
