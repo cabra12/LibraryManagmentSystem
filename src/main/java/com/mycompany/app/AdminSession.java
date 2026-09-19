@@ -48,13 +48,14 @@ public class AdminSession {
                     exitChoice = scanner.nextLine();
                     if(!(exitChoice.equalsIgnoreCase("Y")) && !(exitChoice.equalsIgnoreCase("N"))) {
                         System.out.println("Invalid input, type in either 'y' or 'n'");
-                    }else if(exitChoice.equalsIgnoreCase("Y")) {
+                    } else if(exitChoice.equalsIgnoreCase("Y")) {
                         System.out.println("Signing out...");
                         System.out.println("Goodbye!");
                         continueLoop = false;
+                    } else if(exitChoice.equalsIgnoreCase("N")) {
+                        System.out.println("Okay, continuing your session...");
                     }
                 }
-                
             } else {
                 adminActions(adminActionChoice, scanner, isSuperAdmin);
             }
@@ -405,7 +406,7 @@ public class AdminSession {
                             scanner.nextLine();
                             for(Member checkMember: listOfMembers) {
                                 if(checkMember.getId() == memberId) {
-                                    return MemberDao.getMemberId(memberId);
+                                    return checkMember;
                                 }
                             }
     
