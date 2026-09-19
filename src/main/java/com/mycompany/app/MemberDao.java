@@ -67,7 +67,7 @@ public class MemberDao {
                     members.add(m);
                 }
             } catch (SQLException| IOException e) {
-                System.out.println("Failed to load all books: " + e.getMessage());
+                System.out.println("Failed to load all members: " + e.getMessage());
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -199,7 +199,7 @@ public class MemberDao {
 
         } catch(SQLException e) {
             if ("23503".equals(e.getSQLState())) {
-                System.out.println("This member cannot be deleted because they have books checked out.");
+                System.out.println("This member cannot be deleted because they have borrowing history.");
             } else {
                 System.out.println("Failed to delete member: " + e.getMessage());
             }

@@ -23,72 +23,58 @@ public class BorrowedBookDao {
         Book book = BookDao.getBookById(bookId);
 
         if(book == null) {
-            throw new NullPointerException();
+            System.out.println("That book could not be found.");
+            return;
         }
 
         Date twoWeeksFromToday = Date.valueOf(LocalDate.now().plusDays(14));
 
-        String sql1 = "INSERT into borrowed_books (book_id, member_id, due_date) VALUES (?, ?, ?)";
-        String sql2 = "UPDATE books SET available_copies = available_copies - 1 WHERE id = ?";
+        //"available_copies > 0" makes the availability check part of the UPDATE itself,
+        //so two people can't both take the last copy
+        String sql1 = "UPDATE books SET available_copies = available_copies - 1 WHERE id = ? AND available_copies > 0";
+        String sql2 = "INSERT INTO borrowed_books (book_id, member_id, due_date) VALUES (?, ?, ?)";
 
         try {
             conn = DBConnection.getConnection();
-
-            if(conn == null) {
-                throw new NullPointerException();
-            }
 
             conn.setAutoCommit(false);
             //normally, SQL statements that are run are treated as a mini-transaction and executes and saved permanently to the DB
             //adding false argument turns this off, statements run but they aren't saved yet (pending)
 
 
-            // statement 1: insert into borrowed_books
-
+            // statement 1: take one copy off the shelf (only if one is available)
+            int copiesUpdated;
             try(PreparedStatement pstmt1 = conn.prepareStatement(sql1)) {
-                if(book.getAvailableCopies() > 0) {
-                    pstmt1.setInt(1, bookId);
-                    pstmt1.setInt(2, memberId);
-                    pstmt1.setDate(3, twoWeeksFromToday);
-    
-                    pstmt1.executeUpdate();
-
-                    // statement 2: update books set available_copies = available_copies - 1
-
-                    try(PreparedStatement pstmt2 = conn.prepareStatement(sql2)) {
-                        pstmt2.setInt(1, bookId);
-                        pstmt2.executeUpdate();
-                        SimpleDateFormat sdf = new SimpleDateFormat("MM/dd/yyyy");
-                        System.out.println(book.getTitle() + " by " + book.getAuthor() + " is checked out and yours. Your due date is " + sdf.format(twoWeeksFromToday));
-                    }
-    
-                }else {
-                    System.out.println("Your book is not available!");
-                }
+                pstmt1.setInt(1, bookId);
+                copiesUpdated = pstmt1.executeUpdate();
             }
 
+            if(copiesUpdated == 0) {
+                conn.rollback();
+                System.out.println("Your book is not available!");
+                return;
+            }
+
+            try(PreparedStatement pstmt2 = conn.prepareStatement(sql2)) {
+                pstmt2.setInt(1, bookId);
+                pstmt2.setInt(2, memberId);
+                pstmt2.setDate(3, twoWeeksFromToday);
+                pstmt2.executeUpdate();
+            }
 
             conn.commit();
             //tells database to save everything at this point, not yet permanent
+
+            SimpleDateFormat sdf = new SimpleDateFormat("MM/dd/yyyy");
+            System.out.println(book.getTitle() + " by " + book.getAuthor() + " is checked out and yours. Your due date is " + sdf.format(twoWeeksFromToday));
         } catch (SQLException | IOException e) {
-            try {
-                conn.rollback();
-                //tells DB "throw away everything I've done since the last commit", undoes any pending, uncommited changes
-            } catch (SQLException eRoll) {
-                System.out.println("Failed: " + eRoll.getMessage());
-            }
-            
+            rollbackQuietly(conn);
             System.out.println("Failed: " + e.getMessage());
         } catch (Exception e) {
+            rollbackQuietly(conn);
             e.printStackTrace();
         } finally {
-            try {
-                conn.setAutoCommit(true);
-                conn.close();
-            } catch (SQLException e) {
-                System.out.println("Failed: " + e.getMessage());
-            }
-            
+            closeQuietly(conn);
         }
     }
 
@@ -97,67 +83,74 @@ public class BorrowedBookDao {
         String sql2 = "UPDATE borrowed_books SET return_date = CURRENT_DATE WHERE id = ?";
         String sql3 = "UPDATE books SET available_copies = available_copies + 1 WHERE id = ?";
         Connection conn = null;
-        ResultSet rs = null;
-        int foundBookId = 0;
-
+    
         try {
             conn = DBConnection.getConnection();
-
-            if(conn == null) {
-                throw new NullPointerException();
-            }
-
             conn.setAutoCommit(false);
-
+    
+            int foundBookId;
+    
             try(PreparedStatement pstmt1 = conn.prepareStatement(sql1)) {
                 pstmt1.setInt(1, borrowId);
-                rs = pstmt1.executeQuery();
-                
-                if(rs.next() == true) {
+    
+                try(ResultSet rs = pstmt1.executeQuery()) {
+                    if(!rs.next()) {
+                        System.out.println("Book not found");
+                        return;
+                    }
+    
                     if(rs.getDate("return_date") != null) {
                         System.out.println("The book has already been returned");
                         return;
-                    } else {
-                        foundBookId = rs.getInt("book_id");
-
-                        try(PreparedStatement pstmt2 = conn.prepareStatement(sql2)) {
-                            pstmt2.setInt(1, borrowId);
-                            pstmt2.executeUpdate();
-        
-                            try(PreparedStatement pstmt3 = conn.prepareStatement(sql3)) {
-                                pstmt3.setInt(1, foundBookId);
-                                pstmt3.executeUpdate();
-                                System.out.println("Book was returned!");
-                            }
-                        }
                     }
-
-                } else {
-                    System.out.println("Book not found");
+    
+                    foundBookId = rs.getInt("book_id");
                 }
-
             }
+    
+            try(PreparedStatement pstmt2 = conn.prepareStatement(sql2)) {
+                pstmt2.setInt(1, borrowId);
+                pstmt2.executeUpdate();
+            }
+    
+            try(PreparedStatement pstmt3 = conn.prepareStatement(sql3)) {
+                pstmt3.setInt(1, foundBookId);
+                pstmt3.executeUpdate();
+            }
+    
             conn.commit();
-
+            System.out.println("Book was returned!");
         } catch (SQLException | IOException e) {
-            try {
-                conn.rollback();
-            } catch (SQLException eRoll) {
-                System.out.println("Failed to update book: " + e.getMessage());
-            }
-            
+            rollbackQuietly(conn);
             System.out.println("Failed: " + e.getMessage());
         } catch (Exception e) {
+            rollbackQuietly(conn);
             e.printStackTrace();
         } finally {
-            try {
-                if (rs != null) try { rs.close(); } catch (SQLException e) {}
-                conn.setAutoCommit(true);
-                conn.close();
-            } catch (SQLException e) {
-                System.out.println("Failed: " + e.getMessage());
-            }
-            
+            closeQuietly(conn);
+        }
+    }
+
+    //safe even if the connection was never opened (conn == null)
+    private static void rollbackQuietly(Connection conn) {
+        if(conn == null) {
+            return;
+        }
+        try {
+            conn.rollback();
+        } catch (SQLException e) {
+            System.out.println("Failed to roll back: " + e.getMessage());
+        }
+    }
+
+    private static void closeQuietly(Connection conn) {
+        if(conn == null) {
+            return;
+        }
+        try {
+            conn.close();
+        } catch (SQLException e) {
+            System.out.println("Failed to close connection: " + e.getMessage());
         }
     }
 

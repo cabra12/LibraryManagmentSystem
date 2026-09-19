@@ -224,7 +224,7 @@ public class BookDao {
 
         } catch(SQLException e) {
             if ("23503".equals(e.getSQLState())) {
-                System.out.println("This book cannot be deleted because it's still checked out.");
+                System.out.println("This book cannot be deleted because it has borrowing history.");
             } else {
                 System.out.println("Failed to delete book: " + e.getMessage());
             }

@@ -143,4 +143,16 @@ public abstract class AbstractDaoTest {
                 "INSERT INTO admins (username, password, name, role, must_change_password) VALUES (?, ?, ?, ?, ?) RETURNING id",
                 username, password, name, role, mustChangePassword);
     }
+
+    /**
+     * Inserts a loan. dueInDays is relative to today (negative = already overdue).
+     * If returned is true, return_date is set to today.
+     */
+    protected static int insertLoan(int bookId, int memberId, int dueInDays, boolean returned) {
+        String returnDate = returned ? "CURRENT_DATE" : "NULL";
+        return insertReturningId(
+                "INSERT INTO borrowed_books (book_id, member_id, due_date, return_date) "
+                        + "VALUES (?, ?, CURRENT_DATE + ?, " + returnDate + ") RETURNING id",
+                bookId, memberId, dueInDays);
+    }
 }
