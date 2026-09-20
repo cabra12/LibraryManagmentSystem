@@ -14,12 +14,9 @@ Highlights:
 
 <img src="docs/images/console-admin-menu.png" alt="Admin menu in the console app" width="800">
 <br>
-<br>
 <img src="docs/images/demo-script.png" alt="demo.sh walking through the API" width="800">
 <br>
-<br>
 <img src="docs/images/tests-passing.png" alt="Passing test run: 192 tests, 0 failures" width="800">
-<br>
 <br>
 ## Quick start (Docker)
  
