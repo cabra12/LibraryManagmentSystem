@@ -1,5 +1,4 @@
 target/
 db.properties
-DBConnection.java
 dependency-reduced-pom.xml
 GenerateAdminHash.java

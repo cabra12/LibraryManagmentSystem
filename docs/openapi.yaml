@@ -1,0 +1,440 @@
+openapi: 3.0.3
+info:
+  title: Library API
+  version: 1.0.0
+  description: |
+    REST API for the Library Management System. It sits on top of the same database as the console app.
+
+    **Logging in:** every endpoint except `/health` needs HTTP Basic authentication.
+    - Members log in with their email and password.
+    - Admins log in with their username and password.
+    - A login containing `@` is treated as a member, anything else as an admin.
+
+    **Who can do what**
+    - Any logged-in user can read books.
+    - Only **members** can borrow, return, and see their own loans.
+    - Only **admins** (including superadmins) can add, update, and delete books and see all loans.
+
+    An account that still has a temporary password gets `403` until it sets a new one in the console app.
+
+    Demo logins (Docker setup only): `admin` / `DemoAdmin1!` and `demo@example.com` / `DemoMember1!`.
+
+    Error responses are JSON when the client asks for JSON, and plain text otherwise.
+servers:
+  - url: http://localhost:8080
+    description: Local (Docker or `java -cp target/library-app.jar com.mycompany.app.ApiApp`)
+
+security:
+  - basicAuth: []
+
+tags:
+  - name: Health
+  - name: Books
+  - name: Loans (members)
+  - name: Loans (admins)
+
+paths:
+  /health:
+    get:
+      tags: [Health]
+      summary: Health check
+      description: Public. No login needed.
+      security: []
+      responses:
+        '200':
+          description: The API is running.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+
+  /books:
+    get:
+      tags: [Books]
+      summary: List or search books
+      description: |
+        Any logged-in user. With no query parameter, returns every book.
+        Searches are partial and case-insensitive. If both `title` and `author` are given, `title` is used.
+      parameters:
+        - name: title
+          in: query
+          description: Part of a book title.
+          schema:
+            type: string
+          example: dune
+        - name: author
+          in: query
+          description: Part of an author's name.
+          schema:
+            type: string
+          example: gibson
+      responses:
+        '200':
+          description: The matching books (an empty list if none match).
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Book'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      tags: [Books]
+      summary: Add a book
+      description: |
+        **Admins only.** If `availableCopies` is left out, every copy starts out available.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BookCreate'
+      responses:
+        '201':
+          description: The book was added.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Book'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          description: A book with that ISBN already exists.
+        '500':
+          description: Database error.
+
+  /books/{id}:
+    parameters:
+      - $ref: '#/components/parameters/BookId'
+    get:
+      tags: [Books]
+      summary: Get one book
+      description: Any logged-in user.
+      responses:
+        '200':
+          description: The book.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Book'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [Books]
+      summary: Replace a book's details
+      description: '**Admins only.** Every field is required.'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BookReplace'
+      responses:
+        '200':
+          description: The updated book.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Book'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: That ISBN belongs to another book.
+        '500':
+          description: Database error.
+    delete:
+      tags: [Books]
+      summary: Delete a book
+      description: |
+        **Admins only.** A book that is checked out, or that has any borrowing history, cannot be deleted.
+      responses:
+        '204':
+          description: The book was deleted.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: The book is checked out, or has borrowing history.
+
+  /books/{id}/borrow:
+    parameters:
+      - $ref: '#/components/parameters/BookId'
+    post:
+      tags: [Loans (members)]
+      summary: Borrow a book
+      description: |
+        **Members only.** Creates a loan due in 14 days and takes one copy off the shelf.
+        Admins get `403`.
+      responses:
+        '201':
+          description: The new loan.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Loan'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Could not borrow the book (no copies available).
+
+  /loans/{id}/return:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: The loan's id (from the borrow response or `/me/loans`), not the book's id.
+        schema:
+          type: integer
+        example: 2
+    post:
+      tags: [Loans (members)]
+      summary: Return a book
+      description: |
+        **Members only**, and only for their own active loans. Any other loan id gives `404`.
+      responses:
+        '200':
+          description: The book was returned.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: No active loan with that id belongs to this member.
+        '500':
+          description: The book could not be returned.
+
+  /me/loans:
+    get:
+      tags: [Loans (members)]
+      summary: My active loans
+      description: '**Members only.** Loans that have not been returned yet.'
+      responses:
+        '200':
+          description: The member's active loans (an empty list if none).
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Loan'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /loans:
+    get:
+      tags: [Loans (admins)]
+      summary: All active loans
+      description: '**Admins only.** Every loan that has not been returned yet.'
+      responses:
+        '200':
+          description: All active loans.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Loan'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /loans/overdue:
+    get:
+      tags: [Loans (admins)]
+      summary: Overdue loans
+      description: '**Admins only.** Active loans whose due date has passed.'
+      responses:
+        '200':
+          description: The overdue loans.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Loan'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+components:
+  securitySchemes:
+    basicAuth:
+      type: http
+      scheme: basic
+      description: |
+        Members: email and password. Admins: username and password.
+        The password is sent with every request, so use HTTPS anywhere other than your own machine.
+
+  parameters:
+    BookId:
+      name: id
+      in: path
+      required: true
+      description: The book's id.
+      schema:
+        type: integer
+      example: 1
+
+  responses:
+    BadRequest:
+      description: The request was invalid (missing or bad fields, or an id that is not a number).
+    Unauthorized:
+      description: No login, or the login is wrong.
+      headers:
+        WWW-Authenticate:
+          description: Tells browsers to ask for a username and password.
+          schema:
+            type: string
+            example: Basic realm="Library API"
+    Forbidden:
+      description: |
+        The login is valid but not allowed to do this (for example an admin trying to borrow,
+        or a member trying to add a book), or the account must set a new password first.
+    NotFound:
+      description: No book (or loan) with that id.
+
+  schemas:
+    Book:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        title:
+          type: string
+          example: Dune
+        author:
+          type: string
+          example: Frank Herbert
+        isbn:
+          type: string
+          example: 978-0441013593
+        totalCopies:
+          type: integer
+          example: 3
+        availableCopies:
+          type: integer
+          example: 3
+
+    BookCreate:
+      type: object
+      required: [title, author, isbn, totalCopies]
+      properties:
+        title:
+          type: string
+          example: Demo Book
+        author:
+          type: string
+          example: Demo Author
+        isbn:
+          type: string
+          maxLength: 20
+          example: 978-1111111111
+        totalCopies:
+          type: integer
+          minimum: 1
+          example: 2
+        availableCopies:
+          type: integer
+          minimum: 0
+          description: Optional. Defaults to `totalCopies`. Cannot be more than `totalCopies`.
+          example: 2
+
+    BookReplace:
+      type: object
+      required: [title, author, isbn, totalCopies, availableCopies]
+      properties:
+        title:
+          type: string
+          example: Demo Book 2nd Edition
+        author:
+          type: string
+          example: Demo Author
+        isbn:
+          type: string
+          maxLength: 20
+          example: 978-1111111111
+        totalCopies:
+          type: integer
+          minimum: 1
+          example: 3
+        availableCopies:
+          type: integer
+          minimum: 0
+          description: Cannot be more than `totalCopies`.
+          example: 3
+
+    Loan:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: The loan's id. Use this one to return the book.
+          example: 2
+        bookId:
+          type: integer
+          example: 1
+        memberId:
+          type: integer
+          example: 1
+        borrowDate:
+          type: string
+          format: date
+          example: '2026-09-19'
+        dueDate:
+          type: string
+          format: date
+          example: '2026-10-03'
+        returnDate:
+          type: string
+          format: date
+          nullable: true
+          description: "`null` while the book is still out."
+          example: null
+
+    Message:
+      type: object
+      properties:
+        message:
+          type: string
+          example: Book returned

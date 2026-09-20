@@ -38,7 +38,7 @@ public class MemberSession {
             }
             
             if(memActionChoice == 6) {
-                System.out.println("Are you sure you want to exit? Y/N: ");
+                System.out.print("Are you sure you want to exit? Y/N: ");
                 while(!(exitChoice.equalsIgnoreCase("Y")) && !(exitChoice.equalsIgnoreCase("N"))) {
                     exitChoice = scanner.nextLine();
                     if(!(exitChoice.equalsIgnoreCase("Y")) && !(exitChoice.equalsIgnoreCase("N"))) {

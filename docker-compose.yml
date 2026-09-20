@@ -12,25 +12,44 @@ services:
       # Scripts in this folder run once, in name order, when the database is first created
       - ./src/test/resources/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
       - ./docker/initdb/02-seed-admin.sql:/docker-entrypoint-initdb.d/02-seed-admin.sql:ro
+      - ./docker/initdb/03-seed-demo.sql:/docker-entrypoint-initdb.d/03-seed-demo.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U library -d librarydb"]
       interval: 5s
       timeout: 3s
       retries: 10
 
+  # the console app: start it with `docker compose run --rm app`
   app:
     build: .
     depends_on:
       db:
         condition: service_healthy   # wait until Postgres is ready to accept connections
     environment:
-      # "db" is the service name above; Docker's network resolves it to the database container
       DB_URL: jdbc:postgresql://db:5432/librarydb
       DB_USER: library
       DB_PASSWORD: library_pw
     # The app reads from the keyboard, so it needs an interactive terminal
     stdin_open: true
     tty: true
+
+  # the REST API: start it with `docker compose up -d --build db api`
+  api:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    # same image, different entry point: run the API instead of the console app
+    entrypoint: ["java", "-cp", "app.jar", "com.mycompany.app.ApiApp"]
+    environment:
+      DB_URL: jdbc:postgresql://db:5432/librarydb
+      DB_USER: library
+      DB_PASSWORD: library_pw
+      # listen on all interfaces inside the container, so the published port works
+      API_HOST: 0.0.0.0
+    ports:
+      # 127.0.0.1 = only reachable from your own machine
+      - "127.0.0.1:8080:8080"
 
 volumes:
   pgdata:

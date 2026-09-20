@@ -15,6 +15,7 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <maven.compiler.release>17</maven.compiler.release>
     <testcontainers.version>2.0.5</testcontainers.version>
+    <javalin.version>7.2.3</javalin.version>
   </properties>
 
   <dependencyManagement>
@@ -79,6 +80,11 @@
       <artifactId>testcontainers-postgresql</artifactId>
       <version>${testcontainers.version}</version>
       <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.javalin</groupId>
+      <artifactId>javalin-bundle</artifactId>
+      <version>${javalin.version}</version>
     </dependency>
   </dependencies>
 
